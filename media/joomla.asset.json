@@ -1,0 +1,16 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "name": "mod_community_info",
+  "version": "1.0.0",
+  "description": "Assets for the communit info module",
+  "license": "GPL-2.0-or-later",
+  "assets": [
+    {
+      "name": "communityinfo.leaflet",
+      "type": "script",
+      "uri": "mod_community_info/leaflet.js",
+      "package": "leaflet",
+      "version": "1.9.4"
+    }
+  ]
+}
