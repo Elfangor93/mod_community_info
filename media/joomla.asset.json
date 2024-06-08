@@ -6,6 +6,16 @@
   "license": "GPL-2.0-or-later",
   "assets": [
     {
+      "name": "communityinfo.style",
+      "type": "style",
+      "uri": "mod_community_info/community-info.css"
+    },
+    {
+      "name": "communityinfo.leaflet",
+      "type": "style",
+      "uri": "mod_community_info/leaflet.css"
+    },
+    {
       "name": "communityinfo.leaflet",
       "type": "script",
       "uri": "mod_community_info/leaflet.js",
