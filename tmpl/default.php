@@ -17,8 +17,8 @@ use Joomla\Module\CommunityInfo\Administrator\Helper\CommunityInfoHelper;
 
 /** @var Joomla\CMS\WebAsset\WebAssetManager $wa */
 $wa = $app->getDocument()->getWebAssetManager();
-$wa->useStyle('communityinfo.style');
 $wa->useStyle('communityinfo.leaflet');
+$wa->useStyle('communityinfo.style');
 $wa->useScript('communityinfo.leaflet');
 $wa->useScript('bootstrap.modal');
 $wa->addInlineStyle('#map * + * {margin: 0;}');
