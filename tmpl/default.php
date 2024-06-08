@@ -18,9 +18,10 @@ use Joomla\Module\CommunityInfo\Administrator\Helper\CommunityInfoHelper;
 /** @var Joomla\CMS\WebAsset\WebAssetManager $wa */
 $wa = $app->getDocument()->getWebAssetManager();
 $wa->useStyle('communityinfo.leaflet');
-$wa->useStyle('communityinfo.style');
 $wa->useScript('communityinfo.leaflet');
 $wa->useScript('bootstrap.modal');
+$wa->useStyle('communityinfo.style');
+$wa->useScript('communityinfo.script');
 $wa->addInlineStyle('#map * + * {margin: 0;}');
 
 $lang         = $app->getLanguage();
@@ -113,62 +114,6 @@ echo HTMLHelper::_('bootstrap.renderModal', 'location-modal', $options, '<p>Load
 ?>
 
 <script>
-  var map;
-  var bsmodal;
-  var pin;
-  var tilesURL='https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png';
-  var mapAttrib='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, Tiles courtesy of <a href="http://hot.openstreetmap.org/" target="_blank">Humanitarian OpenStreetMap Team</a>';
-
-  function MapCreate() {
-    // create map instance
-    if (!(typeof map == "object")) {
-      map = L.map('map', {
-        center: [40,0],
-        zoom: 3
-      });
-    }
-    else {
-      map.setZoom(3).panTo([40,0]);
-    }
-    // create the tile layer with correct attribution
-    L.tileLayer(tilesURL, {
-      attribution: mapAttrib,
-      maxZoom: 19
-    }).addTo(map);
-  }
-
-  function registerEvents() {
-    map.on('click', function(ev) {
-      document.getElementById('jform_lat').value = ev.latlng.lat;
-      document.getElementById('jform_lng').value = ev.latlng.lng;
-      if (typeof pin == "object") {
-        pin.setLatLng(ev.latlng);
-      }
-      else {
-        pin = L.marker(ev.latlng,{ riseOnHover:true,draggable:true });
-        pin.addTo(map);
-        pin.on('drag',function(ev) {
-          document.getElementById('jform_lat').value = ev.latlng.lat;
-          document.getElementById('jform_lng').value = ev.latlng.lng;
-        });
-      }
-    });
-  }
-      
-  let openModal = function(modalId) {
-    let modal      = document.getElementById(modalId);
-    let modalBody  = modal.querySelector('.modal-body');
-    modalBody.innerHTML  = document.getElementById('template-'+modalId+'-body').innerHTML;
-
-    bsmodal = new bootstrap.Modal(document.getElementById(modalId), {keyboard: false});
-    bsmodal.show();
-
-    setTimeout(function(){
-      MapCreate();
-      registerEvents();
-    }, 300);    
-  }
-
   var callback = function(){
     // document ready function;
     let moduleBody   = document.getElementById('CommunityInfo<?php echo strval($module->id); ?>');

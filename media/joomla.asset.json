@@ -21,6 +21,15 @@
       "uri": "mod_community_info/leaflet.js",
       "package": "leaflet",
       "version": "1.9.4"
+    },
+    {
+      "name": "communityinfo.script",
+      "type": "script",
+      "uri": "mod_community_info/community-info.js",
+      "dependencies": [
+        "bootstrap.modal",
+        "communityinfo.leaflet"
+      ]
     }
   ]
 }
