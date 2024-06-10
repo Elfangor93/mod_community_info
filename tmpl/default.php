@@ -27,8 +27,6 @@ $wa->addInlineStyle('#map * + * {margin: 0;}');
 $lang         = $app->getLanguage();
 $extension    = $app->getInput()->get('option');
 $currentURL   = Uri::getInstance()->toString();
-
-$currentLoc   = \explode(',', CommunityInfoHelper::getLocation($params, 'geolocation'), 2);
 ?>
 
 <div id="CommunityInfo<?php echo strval($module->id); ?>" class="mod-community-info px-3">
@@ -116,24 +114,24 @@ echo HTMLHelper::_('bootstrap.renderModal', 'location-modal', $options, '<p>Load
 ?>
 
 <script>
-  var callback = function(){
+  async function callback(){
     // prepare location picker module
     let moduleBody   = document.getElementById('CommunityInfo<?php echo strval($module->id); ?>');
     let moduleHeader = moduleBody.parentNode.previousElementSibling;
 
     moduleHeader.appendChild(document.getElementById('template-location-picker').content);
-  }; //end callback
 
-  // Send browsers current geolocation to com_ajax
-  try {
-    let location = getCurrentLocation();
-    console.log('Current Location:', location);
-    
-    let response = ajaxLocation(location, 'setLocation');
-    console.log('Ajax Response:', response);
-  } catch (error) {
-    console.error('Error:', error);
-  }
+    // Send browsers current geolocation to com_ajax
+    try {
+      let location = await getCurrentLocation();
+      console.log('Current Location:', location);
+      
+      let response = await ajaxLocation(location, 'setLocation');
+      console.log('Ajax Response:', response);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }; //end callback
 
   if(document.readyState === 'complete' || (document.readyState !== 'loading' && !document.documentElement.doScroll)) {
     callback();

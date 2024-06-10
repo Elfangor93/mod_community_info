@@ -31,6 +31,13 @@ use Joomla\Registry\Registry;
 class CommunityInfoHelper
 {
     /**
+     * Module parameters
+     *
+     * @var Registry
+     */
+    static public $params = null;
+
+    /**
      * Get a list of links from the endpoint given in the module params.
      * 
      * Endpoint:
@@ -45,6 +52,8 @@ class CommunityInfoHelper
      */
     static public function getLinks(Registry $params, AdministratorApplication $app)
     {
+        self::setParams($params);
+
         // Load the default values
         require_once JPATH_ADMINISTRATOR.'/modules/mod_community_info/includes/default_links.php';
         $links = new Registry($default_links_array);
@@ -53,12 +62,64 @@ class CommunityInfoHelper
     }
 
     /**
+     * Get location info
+     *
+     * @param   Registry   $params  Object holding the module parameters
+     * @param   string     $key     The key for the location info 
+     *
+     * @return  string     Location info string
+     *
+     * @since   4.5.0
+     */
+    static public function getLocation(Registry $params, string $key='geolocation')
+    {
+      self::setParams($params);
+
+      $location = null;
+
+      // Get the list of countries
+      require JPATH_ADMINISTRATOR.'/modules/mod_community_info/includes/country_list.php';
+
+      $matches = [];
+
+      // Startegy 1: Location stored in parameters
+      if(\is_null($location) && !empty($params->get('location', 0))) {
+        if(\key_exists($params->get('location'), $country_list_array)) {
+          // Location based on language code
+          $location = $country_list_array[$params->get('location')][$key];
+        } else {
+          $location = $params->get('location');
+        }
+      }
+
+      // Strategy 2: Location based on current language
+      if(\is_null($location) && \key_exists($lang, $country_list_array)) {
+        $location = $country_list_array[$lang][$key];
+      }
+
+      // Strategy 3: Fallback location
+      if(\is_null($location)) {
+        $location = $country_list_array[$params->get('fallback-location', 'en-UK')][$key];
+      }
+
+      if($key == 'label' && \preg_match('/[-]*\d{1,4}\.\d{1,4}\,[ ,-]*\d{1,4}\.\d{1,4}/m', $location, $matches))
+      {
+        // We are asking for a location name. Turn coordinates into location name.
+        $coor_arr = \explode(',', $matches[0], 2);
+        $location = self::resolveLocation($coor_arr[0], $coor_arr[1]);
+      }
+
+      return $location;
+    }
+
+    
+    /**
      * Replace placeholders in a text string
      *
-     * @param   Registry                  $params  Object holding the module parameters
-     * @param   AdministratorApplication  $app     The application
+     * @param   string     $text    The text with placeholders
+     * @param   Registry   $links   The links to be inserted
      *
-     * @return  Registry                  Object with community links
+     * @return  string     The replaced text
      *
      * @since   4.5.0
      */
@@ -87,69 +148,91 @@ class CommunityInfoHelper
     }
 
     /**
-     * Get location info
+     * Set location string to module params
      *
-     * @param   Registry   $params  Object holding the module parameters
-     * @param   string     $key     The key for the location info 
-     *
-     * @return  string     Location info string
+     * @return  string  The ajax return message
      *
      * @since   4.5.0
      */
-    static public function getLocation(Registry $params, string $key='geolocation')
+    static public function setLocationAjax()
     {
-      $location = null;
+      $input = Factory::getApplication()->input;
 
-      // Get the list of countries
-      require JPATH_ADMINISTRATOR.'/modules/mod_community_info/includes/country_list.php';
+      if($input->getCmd('option') !== 'com_ajax' || $input->getCmd('module') !== 'community_info') {
+        
+        return 'Permission denied!';
+      }
+      
+      if(!$current_location = $input->get('current_location', false, 'string')) {
+        
+        return 'You must provide a "current_location" variable with the request!';
+      }
 
-      $matches = [];
+      $params           = self::setParams();
+      $current_location = self::fixCoordination($current_location);
 
-      // Startegy 1: Location stored in parameters
-      if(\is_null($location) && !empty($params->get('location', 0))) {
-        if(\key_exists($params->get('location'), $country_list_array)) {
-          // Location based on language code
-          $location = $country_list_array[$params->get('location')][$key];
-        } elseif(\preg_match('/\d{1,4}\.\d{1,4}\,[ ]*\d{1,4}\.\d{1,4}/m', $params->get('location'), $matches)) {
-          // Location based on coordinates
-          $location = $params->get('location');
+      if($params->location != $current_location)
+      {
+        // Update location param
+        $params->set('location', \trim($current_location));
 
-          if($key == 'label') {
-            // We are asking for a location name. Turn coordinates into location name.
-            $coor_arr = \explode(',', $matches[0], 2);
-            $location = self::resolveLocation($coor_arr[0], $coor_arr[1]);
-          }
-        } else {
-          $location = $params->get('location');
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+        $query = $db->getQuery(true);
+
+        $query->update($db->quoteName('#__modules'))
+                              ->set($db->quoteName('params').' = '. $db->quote($params->toString('json')))
+                              ->where($db->quoteName('module').' = '. $db->quote('mod_community_info'));
+
+        $db->setQuery($query);
+
+        if($db->execute()) {
+          return 'Location successfully updated. Update will be visible with the next refresh.';
         }
       }
 
-      // Strategy 2: Location based on current language
-      if(\is_null($location) && \key_exists($lang, $country_list_array)) {
-        $location = $country_list_array[$lang][$key];
-      }
-
-      // Strategy 3: Fallback location
-      if(\is_null($location)) {
-        $location = $country_list_array[$params->get('fallback-location', 'en-UK')][$key];
-      }
-
-      return $location;
+      return 'Location does not need to be updated.';
     }
 
     /**
-     * Set location string to module params
+     * Setter for the params
      *
-     * @param   string    $location   The location string to be stored
-     *
-     * @return  void
-     * @throws  Exception
+     * @return  Registry  Module parameters
      *
      * @since   4.5.0
      */
-    static public function setLocation(string $location, AdministratorApplication $app)
+    static protected function setParams($params = null)
     {
-      return 'CommunityInfoHelper::setLocation()';
+      if(\is_null(self::$params)) {
+        if(!\is_null($params)) {
+          self::$params = $params;
+        } else {
+          self::loadParams();
+        }
+      }
+
+      return self::$params;
+    }
+
+    /**
+     * Load params from database
+     *
+     * @return  void
+     *
+     * @since   4.5.0
+     * @throws \Exception
+     */
+    static protected function loadParams()
+    {
+      $db = Factory::getContainer()->get(DatabaseInterface::class);
+
+      $query = $db->getQuery(true)
+                ->select($db->quoteName('params'))
+                ->from($db->quoteName('#__modules'))
+                ->where($db->quoteName('module').' = '. $db->quote('mod_community_info'));
+
+      $db->setQuery($query);
+
+      self::$params = new Registry($db->loadResult());
     }
 
     /**
@@ -162,7 +245,7 @@ class CommunityInfoHelper
      *
      * @since   4.5.0
      */
-    static public function resolveLocation($lat, $lng)
+    static protected function resolveLocation($lat, $lng)
     {
       $domain  = \str_replace(Uri::base(true), '', Uri::base());
       $email   = self::getSuperUserMails()[0];
@@ -182,9 +265,30 @@ class CommunityInfoHelper
       
       $data = \json_decode($json);
 
-      if($data && isset($data->address->city))
+      if($data && isset($data->address))
       {
-        return $data->address->city.', '.$data->address->state.', '.\strtoupper($data->address->country_code);
+        $loc = '';
+
+        // Get town/city
+        if(isset($data->address->city)) {
+          $loc .= $data->address->city;
+        } elseif(isset($data->address->town)) {
+          $loc .= $data->address->town;
+        }
+
+        // Get state
+        if(isset($data->address->state)) {
+          $loc .= empty($loc) ? '': ', ';
+          $loc .= $data->address->state;
+        }
+
+        // Get country code
+        if(isset($data->address->country_code)) {
+          $loc .= empty($loc) ? '': ', ';
+          $loc .= \strtoupper($data->address->country_code);
+        }
+
+        return $loc;
       }
       else
       {
@@ -201,9 +305,9 @@ class CommunityInfoHelper
      *
      * @since   4.5.0
      */
-    static public function getSuperUserMails()
+    static protected function getSuperUserMails()
     {
-      $db     = Factory::getContainer()->get(DatabaseInterface::class);
+      $db = Factory::getContainer()->get(DatabaseInterface::class);
 
       // Get a list of groups which have Super User privileges
       $ret = ['info@example.org'];
@@ -262,5 +366,27 @@ class CommunityInfoHelper
       }
 
       return $ret;
+    }
+
+    /**
+     * Fix a coordinates string
+     *
+     * @param   string   $coordinates   Coordinates string
+     *
+     * @return  string   Fixed string
+     *
+     * @since   4.5.0
+     */
+    static protected function fixCoordination(string $coordinates): string
+    {
+        $coor_arr = \explode(',', $coordinates, 2);
+
+        $lat_arr = \explode('.', $coor_arr[0], 2);
+        $lng_arr = \explode('.', $coor_arr[1], 2);
+
+        // Create the form 51.5000,0.0000
+        $coordinates = \trim($lat_arr[0]).'.'.\trim(\substr($lat_arr[1], 0, 4)).','.\trim($lng_arr[0]).'.'.\trim(\substr($lng_arr[1], 0, 4));
+
+        return $coordinates;
     }
 }

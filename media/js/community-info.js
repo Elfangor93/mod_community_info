@@ -138,7 +138,7 @@ let ajaxLocation = async function(location, method) {
  * 
  * @returns {Promise<String>}   A promise that resolves to the location string (e.g., "51.5000,0.0000")
  */
-let getCurrentLocation = function() {
+let getCurrentLocation = async function() {
   return new Promise((resolve, reject) => {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
