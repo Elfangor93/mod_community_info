@@ -67,11 +67,15 @@ $currentURL   = Uri::getInstance()->toString();
       </div>
       <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEvents" aria-expanded="false" aria-controls="collapseEvents"><i class="icon-arrow-down"></i></button>
     </div>
-    <table id="collapseEvents" class="table community-info-news collapse">
+    <table id="collapseEvents" class="table table-sm community-info-news collapse">
       <tbody>
         <tr>
-          <td scope="row">JUG Trimbach<br />Meetup - Trimbach, Schweiz</td>
-          <td style="text-align: right">Montag, Jun 3, 2024<br />19:00 GMT+2</td>
+          <td scope="row"><strong>JUG Trimbach</strong><br /><span class="small">Meetup - Trimbach, Schweiz</span></td>
+          <td style="text-align: right"><span class="small">Montag, Jun 3, 2024</span><br /><span class="small">19:00 GMT+2</span></td>
+        </tr>
+        <tr>
+          <td scope="row"><strong>JUG Trimbach</strong><br /><span class="small">Meetup - Trimbach, Schweiz</span></td>
+          <td style="text-align: right"><span class="small">Montag, Jun 3, 2024</span><br /><span class="small">19:00 GMT+2</span></td>
         </tr>
       </tbody>
     </table>
