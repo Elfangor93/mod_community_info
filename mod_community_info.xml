@@ -23,6 +23,11 @@
     <language tag="de-DE">language/de-DE/mod_community_info.ini</language>
 		<language tag="de-DE">language/de-DE/mod_community_info.sys.ini</language>
 	</languages>
+  <media folder="media" destination="mod_community_info">
+		<filename>joomla.asset.json</filename>
+		<folder>css</folder>
+		<folder>js</folder>
+	</media>
 	<help key="Admin_Modules:_Community_Info" />
 	<config>
 		<fields name="params">

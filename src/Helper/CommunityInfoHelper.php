@@ -14,6 +14,7 @@ use Joomla\CMS\Access\Access;
 use Joomla\CMS\Application\AdministratorApplication;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Session\Session;
 use Joomla\CMS\Table\Table;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
@@ -206,21 +207,57 @@ class CommunityInfoHelper
         // Update location param
         $params->set('location', \trim($current_location));
 
-        $db = Factory::getContainer()->get(DatabaseInterface::class);
-        $query = $db->getQuery(true);
+        // Write updates to db
+        try {
+          $res = self::writeParams($params);
+        } catch (\Exception $e) {
+          return Text::_('MOD_COMMUNITY_ERROR_SAVE_LOCATION') . ' ' . $e->getMessage();
+        }
 
-        $query->update($db->quoteName('#__modules'))
-                              ->set($db->quoteName('params').' = '. $db->quote($params->toString('json')))
-                              ->where($db->quoteName('id').' = '. self::$module_id);
-
-        $db->setQuery($query);
-
-        if($db->execute()) {
-          return 'Location successfully updated. Update will be visible with the next refresh.';
+        if($res) {
+          return Text::_('MOD_COMMUNITY_SUCCESS_SAVE_LOCATION');
         }
       }
 
-      return 'Location does not need to be updated.';
+      return Text::_('MOD_COMMUNITY_MSG_SAVE_LOCATION_NOT_NEEDED');
+    }
+
+    /**
+     * Save a manual location to params
+     *
+     * @param   string    $task    The task to be executed
+     * 
+     * @return  void
+     *
+     * @since   4.5.0
+     */
+    static public function setLocationForm($task = 'saveLocation')
+    {
+      if(!Session::checkToken('post')) {
+        return;
+      }
+
+      $params = self::setParams();
+
+      // Get input data
+      $input            = Factory::getApplication()->input;
+      $jform            = $input->getArray(array( 'jform' => array('lat'=>'string', 'lng'=>'string', 'autoloc'=>'bool') ));
+      $current_location = self::fixCoordination($jform['jform']['lat'].','.$jform['jform']['lng']);
+
+      // Update module params
+      $params->set('location', \trim($current_location));
+      $params->set('auto_location', \intval($jform['jform']['autoloc']));
+
+      // Write updates to db
+      try {
+        $res = self::writeParams($params);
+      } catch (\Exception $e) {
+        Factory::getApplication()->enqueueMessage(Text::_('MOD_COMMUNITY_ERROR_SAVE_LOCATION') . ' ' . $e->getMessage(), 'error');
+      }
+
+      if($res) {
+        Factory::getApplication()->enqueueMessage(Text::_('MOD_COMMUNITY_SUCCESS_SAVE_LOCATION'), 'success');
+      }
     }
 
     /**
@@ -281,6 +318,34 @@ class CommunityInfoHelper
       $db->setQuery($query);
 
       self::$params = new Registry($db->loadResult());
+    }
+
+    /**
+     * Write params to database
+     *
+     * @param   Registry   $params   New module parameters
+     * 
+     * @return  mixed      A database cursor resource on success, boolean false on failure.
+     *
+     * @since   4.5.0
+     * @throws \Exception
+     */
+    static protected function writeParams(Registry $params)
+    {
+      if(\is_null(self::$module_id)) {
+        throw new \Exception('Module ID is needed in order to write params to db!', 1);        
+      }
+
+      $db = Factory::getContainer()->get(DatabaseInterface::class);
+      $query = $db->getQuery(true);
+
+      $query->update($db->quoteName('#__modules'))
+                            ->set($db->quoteName('params').' = '. $db->quote($params->toString('json')))
+                            ->where($db->quoteName('id').' = '. self::$module_id);
+
+      $db->setQuery($query);
+
+      return $db->execute();
     }
 
     /**

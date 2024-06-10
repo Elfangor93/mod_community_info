@@ -66,6 +66,13 @@ class Dispatcher extends AbstractModuleDispatcher implements HelperFactoryAwareI
         // Initialize the helper class
         $this->getHelperFactory()->getHelper('CommunityInfoHelper')->initialize($this->module->id, $data['params']);
 
+        // Update location by form values
+        $task = $this->input->getCmd('module_task', '');
+        if(\in_array($task, ['saveLocation', 'autoLocation']))
+        {
+          $this->getHelperFactory()->getHelper('CommunityInfoHelper')->setLocationForm($task);
+        }
+
         // Get links and location
         $data['links']      = $this->getHelperFactory()->getHelper('CommunityInfoHelper')->getLinks($data['params']);
         $data['currentLoc'] = \explode(',', $this->getHelperFactory()->getHelper('CommunityInfoHelper')->getLocation($data['params'], 'geolocation'), 2);

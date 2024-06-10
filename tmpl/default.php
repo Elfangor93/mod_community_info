@@ -110,6 +110,7 @@ $currentURL   = Uri::getInstance()->toString();
           <div class="control-label"><label for="jform_lng" id="jfrom_lng-lbl">Longitude</label></div>
           <div class="controls"><input id="jform_lng" class="from-control" type="text" name="jform[lng]" value="<?php echo \trim($currentLoc[1]); ?>"></div>
         </div>
+        <input id="module_task" class="hidden" type="hidden" name="module_task" value="">
         <input id="jform_modid" class="hidden" type="hidden" name="jform[modid]" value="<?php echo $module->id; ?>">
         <input id="jform_autoloc" class="hidden" type="hidden" name="jform[autoloc]" value="<?php $params->get('auto_location', '1'); ?>">
         <?php echo HTMLHelper::_('form.token'); ?>

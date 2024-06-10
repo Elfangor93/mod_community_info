@@ -75,15 +75,24 @@ let openModal = function(modalId, location) {
 /**
  * Activate automatic location service
  */
-let autoLoc = function() {
-  console.log('autoLoc()');
+let autoLoc = async function() {
+  let location = await getCurrentLocation();
+
+  document.getElementById('jform_lat').value = location.split(',', 2)[0];
+  document.getElementById('jform_lng').value = location.split(',', 2)[1];
+  document.getElementById('jform_autoloc').value = '1';
+
+  document.getElementById('module_task').value = 'autoLocation';
+  document.getElementById('location-form').submit();
 }
 
 /**
  * Save manual chosen location
  */
 let saveLoc = function() {
-  console.log('saveLoc()');
+  document.getElementById('jform_autoloc').value = '0';
+  document.getElementById('module_task').value = 'saveLocation';
+  document.getElementById('location-form').submit();
 }
 
 /**
