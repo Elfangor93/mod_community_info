@@ -20,6 +20,7 @@ $wa = $app->getDocument()->getWebAssetManager();
 $wa->useStyle('communityinfo.leaflet');
 $wa->useScript('communityinfo.leaflet');
 $wa->useScript('bootstrap.modal');
+$wa->useScript('bootstrap.collapse');
 $wa->useStyle('communityinfo.style');
 $wa->useScript('communityinfo.script');
 $wa->addInlineStyle('#map * + * {margin: 0;}');
@@ -35,12 +36,6 @@ $currentURL   = Uri::getInstance()->toString();
   <div class="info-block contact">
     <h3><?php echo Text::_('MOD_COMMUNITY_INFO_CONTACT_TITLE'); ?></h3>
     <p><?php echo CommunityInfoHelper::replaceText(Text::_('MOD_COMMUNITY_INFO_CONTACT_TEXT'), $links); ?></p>
-  </div>  
-  <hr />
-  <div class="info-block contribute">
-    <h3><?php echo Text::_('MOD_COMMUNITY_INFO_CONTRIBUTE_TITLE'); ?></h3>
-    <p><?php echo CommunityInfoHelper::replaceText(Text::_('MOD_COMMUNITY_INFO_CONTRIBUTE_TEXT'), $links); ?></p>
-    <p><?php echo CommunityInfoHelper::replaceText(Text::_('MOD_COMMUNITY_INFO_CONTRIBUTE_CONTACT'), $links); ?></p>
   </div>
   <hr />
   <div class="info-block news">
@@ -49,9 +44,10 @@ $currentURL   = Uri::getInstance()->toString();
         <h3><?php echo Text::_('MOD_COMMUNITY_INFO_NEWS_TITLE'); ?></h3>
         <p><?php echo Text::_('MOD_COMMUNITY_INFO_NEWS_INTRO'); ?></p>
       </div>
-      <a class="btn btn-primary mb-3"><?php echo Text::_('MOD_COMMUNITY_INFO_NEWS_SUBSCRIBE'); ?></a>
+      <a class="btn btn-primary"><?php echo Text::_('MOD_COMMUNITY_INFO_NEWS_SUBSCRIBE'); ?></a>
+      <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNews" aria-expanded="false" aria-controls="collapseNews"><i class="icon-arrow-down"></i></button>
     </div>
-    <table class="table community-info-news">
+    <table id="collapseNews" class="table community-info-news collapse">
       <tbody>
         <tr>
           <td scope="row"><a href="https://www.joomla.de/news/joomla/joomla-5-1-0-und-joomla-4-4-4-veroeffentlicht" target="_blank">Hurra, Joomla 5.1.0 und Joomla! 4.4.4 sind da</a></td>
@@ -64,9 +60,14 @@ $currentURL   = Uri::getInstance()->toString();
   </div>  
   <hr />
   <div class="info-block events">
-    <h3><?php echo Text::_('MOD_COMMUNITY_INFO_EVENTS_TITLE'); ?></h3>
-    <p><?php echo Text::_('MOD_COMMUNITY_INFO_EVENTS_INTRO'); ?></p>
-    <table class="table community-info-news">
+    <div class="intro-txt">
+      <div>
+        <h3><?php echo Text::_('MOD_COMMUNITY_INFO_EVENTS_TITLE'); ?></h3>
+        <p><?php echo Text::_('MOD_COMMUNITY_INFO_EVENTS_INTRO'); ?></p>
+      </div>
+      <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEvents" aria-expanded="false" aria-controls="collapseEvents"><i class="icon-arrow-down"></i></button>
+    </div>
+    <table id="collapseEvents" class="table community-info-news collapse">
       <tbody>
         <tr>
           <td scope="row">JUG Trimbach<br />Meetup - Trimbach, Schweiz</td>
@@ -74,6 +75,12 @@ $currentURL   = Uri::getInstance()->toString();
         </tr>
       </tbody>
     </table>
+  </div>
+  <hr />
+  <div class="info-block contribute">
+    <h3><?php echo Text::_('MOD_COMMUNITY_INFO_CONTRIBUTE_TITLE'); ?></h3>
+    <p><?php echo CommunityInfoHelper::replaceText(Text::_('MOD_COMMUNITY_INFO_CONTRIBUTE_TEXT'), $links); ?></p>
+    <p><?php echo CommunityInfoHelper::replaceText(Text::_('MOD_COMMUNITY_INFO_CONTRIBUTE_CONTACT'), $links); ?></p>
   </div>
 </div>
 
