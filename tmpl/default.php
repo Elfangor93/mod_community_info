@@ -27,6 +27,8 @@ $wa->addInlineStyle('#map * + * {margin: 0;}');
 $lang         = $app->getLanguage();
 $extension    = $app->getInput()->get('option');
 $currentURL   = Uri::getInstance()->toString();
+
+$currentLoc   = \explode(',', CommunityInfoHelper::getLocation($params, 'geolocation'), 2);
 ?>
 
 <div id="CommunityInfo<?php echo strval($module->id); ?>" class="mod-community-info px-3">
@@ -79,7 +81,7 @@ $currentURL   = Uri::getInstance()->toString();
 
 <template id="template-location-picker">
   <div class="select-location">
-    <a href="#" onclick="openModal('location-modal')">
+    <a href="" onclick="openModal('location-modal', <?php echo CommunityInfoHelper::getLocation($params, 'geolocation'); ?>)">
       <i class="icon-location"></i>
       <?php echo Text::_('MOD_COMMUNITY_INFO_CHOOSE_LOCATION'); ?>
     </a><span> (<?php echo Text::_('JCURRENT'); ?>: <?php echo CommunityInfoHelper::getLocation($params, 'label'); ?>)</span>
@@ -93,11 +95,11 @@ $currentURL   = Uri::getInstance()->toString();
         <div id="map" class="mb-3" style="height:40vh;width:100%;"></div>
         <div class="control-group">
           <div class="control-label"><label for="jform_lat" id="jfrom_lat-lbl">Latitude</label></div>
-          <div class="controls"><input id="jform_lat" class="from-control" type="text" name="jform[lat]"></div>
+          <div class="controls"><input id="jform_lat" class="from-control" type="text" name="jform[lat]" value="<?php echo \trim($currentLoc[0]); ?>"></div>
         </div>
         <div class="control-group">
           <div class="control-label"><label for="jform_lng" id="jfrom_lng-lbl">Longitude</label></div>
-          <div class="controls"><input id="jform_lng" class="from-control" type="text" name="jform[lng]"></div>
+          <div class="controls"><input id="jform_lng" class="from-control" type="text" name="jform[lng]" value="<?php echo \trim($currentLoc[1]); ?>"></div>
         </div>
       </div>
     </div>
@@ -115,12 +117,23 @@ echo HTMLHelper::_('bootstrap.renderModal', 'location-modal', $options, '<p>Load
 
 <script>
   var callback = function(){
-    // document ready function;
+    // prepare location picker module
     let moduleBody   = document.getElementById('CommunityInfo<?php echo strval($module->id); ?>');
     let moduleHeader = moduleBody.parentNode.previousElementSibling;
 
     moduleHeader.appendChild(document.getElementById('template-location-picker').content);
   }; //end callback
+
+  // Send browsers current geolocation to com_ajax
+  try {
+    let location = getCurrentLocation();
+    console.log('Current Location:', location);
+    
+    let response = ajaxLocation(location, 'setLocation');
+    console.log('Ajax Response:', response);
+  } catch (error) {
+    console.error('Error:', error);
+  }
 
   if(document.readyState === 'complete' || (document.readyState !== 'loading' && !document.documentElement.doScroll)) {
     callback();

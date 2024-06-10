@@ -101,7 +101,7 @@ class CommunityInfoHelper
       $location = null;
 
       // Get the list of countries
-      require_once JPATH_ADMINISTRATOR.'/modules/mod_community_info/includes/country_list.php';
+      require JPATH_ADMINISTRATOR.'/modules/mod_community_info/includes/country_list.php';
 
       $matches = [];
 
@@ -149,7 +149,7 @@ class CommunityInfoHelper
      */
     static public function setLocation(string $location, AdministratorApplication $app)
     {
-      // set code here
+      return 'CommunityInfoHelper::setLocation()';
     }
 
     /**
