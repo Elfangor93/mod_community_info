@@ -49,6 +49,16 @@
           label="MOD_COMMUNITY_INFO_FIELD_LOCATION_LABEL"
           description="MOD_COMMUNITY_INFO_FIELD_LOCATION_DESC"
         />
+        <field name="auto_location"
+             type="radio"
+             default="1"
+             class="btn-group"
+             layout="joomla.form.field.radio.switcher"
+             label="MOD_COMMUNITY_INFO_FIELD_AUTO_LOCATION_LABEL"
+             description="MOD_COMMUNITY_INFO_FIELD_AUTO_LOCATION_DESC" >
+          <option value="0">JNO</option>
+          <option value="1">JYES</option>
+        </field>
       </fieldset>
 			<fieldset name="advanced">
 				<field

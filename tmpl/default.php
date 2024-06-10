@@ -111,6 +111,8 @@ $currentURL   = Uri::getInstance()->toString();
           <div class="controls"><input id="jform_lng" class="from-control" type="text" name="jform[lng]" value="<?php echo \trim($currentLoc[1]); ?>"></div>
         </div>
         <input id="jform_modid" class="hidden" type="hidden" name="jform[modid]" value="<?php echo $module->id; ?>">
+        <input id="jform_autoloc" class="hidden" type="hidden" name="jform[autoloc]" value="<?php $params->get('auto_location', '1'); ?>">
+        <?php echo HTMLHelper::_('form.token'); ?>
       </div>
     </div>
   </form>
@@ -120,7 +122,7 @@ $currentURL   = Uri::getInstance()->toString();
 // Location form modal
 $options = array('modal-dialog-scrollable' => true,
                   'title'  => Text::_('MOD_COMMUNITY_INFO_CHOOSE_LOCATION'),
-                  'footer' => '<a class="btn" href="">'.Text::_('MOD_COMMUNITY_INFO_SAVE_LOCATION').'</a>',
+                  'footer' => '<button onclick="autoLoc()" class="btn">'.Text::_('MOD_COMMUNITY_INFO_AUTO_LOCATION').'</button><button onclick="saveLoc()" class="btn btn-primary">'.Text::_('MOD_COMMUNITY_INFO_SAVE_LOCATION').'</button>',
                 );
 echo HTMLHelper::_('bootstrap.renderModal', 'location-modal', $options, '<p>Loading...</p>');
 ?>
@@ -134,6 +136,7 @@ echo HTMLHelper::_('bootstrap.renderModal', 'location-modal', $options, '<p>Load
     moduleHeader.appendChild(document.getElementById('template-location-picker').content);
 
     // Send browsers current geolocation to com_ajax
+    <?php if(intval($params->get('auto_location', 1))) : ?>
     try {
       let location = await getCurrentLocation();
       console.log('Current Location:', location);
@@ -143,6 +146,7 @@ echo HTMLHelper::_('bootstrap.renderModal', 'location-modal', $options, '<p>Load
     } catch (error) {
       console.error('Error:', error);
     }
+    <?php endif; ?>
   }; //end callback
 
   if(document.readyState === 'complete' || (document.readyState !== 'loading' && !document.documentElement.doScroll)) {

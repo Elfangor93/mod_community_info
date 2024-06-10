@@ -66,20 +66,21 @@ class CommunityInfoHelper
      * Endpoint:
      * https://www.codexworld.com/radius-based-location-search-by-distance-php-mysql/
      *
-     * @param   Registry                  $params  Object holding the module parameters
-     * @param   AdministratorApplication  $app     The application
+     * @param   Registry   $params   Object holding the module parameters
      *
-     * @return  Registry                  Object with community links
+     * @return  Registry   Object with community links
      *
      * @since   4.5.0
      */
-    static public function getLinks(Registry $params, AdministratorApplication $app)
+    static public function getLinks(Registry $params)
     {
         self::setParams($params);
 
         // Load the default values
         require_once JPATH_ADMINISTRATOR.'/modules/mod_community_info/includes/default_links.php';
         $links = new Registry($default_links_array);
+
+        // ToDo: Load links from endpoint
 
         return $links;
     }
@@ -200,7 +201,7 @@ class CommunityInfoHelper
       $params           = self::setParams();
       $current_location = self::fixCoordination($current_location);
 
-      if($params->get('location') != $current_location)
+      if($params->get('auto_location', 1) && $params->get('location') != $current_location)
       {
         // Update location param
         $params->set('location', \trim($current_location));

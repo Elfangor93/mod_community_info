@@ -4,6 +4,11 @@ var pin;
 var tilesURL='https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png';
 var mapAttrib='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, Tiles courtesy of <a href="http://hot.openstreetmap.org/" target="_blank">Humanitarian OpenStreetMap Team</a>';
 
+/**
+ * Create the leaflet map
+ * 
+ * @param {String}  location   The current location (e.g 51.5000,0.0000) 
+ */
 let mapCreate = function(location) {
   // create map instance
   if (!(typeof map == "object")) {
@@ -26,6 +31,9 @@ let mapCreate = function(location) {
   }).addTo(map);
 }
 
+/**
+ * Register click event on leaflet map
+ */
 let registerEvents = function() {
   map.on('click', function(ev) {
     document.getElementById('jform_lat').value = ev.latlng.lat;
@@ -62,6 +70,20 @@ let openModal = function(modalId, location) {
     mapCreate(location);
     registerEvents();
   }, 300);    
+}
+
+/**
+ * Activate automatic location service
+ */
+let autoLoc = function() {
+  console.log('autoLoc()');
+}
+
+/**
+ * Save manual chosen location
+ */
+let saveLoc = function() {
+  console.log('saveLoc()');
 }
 
 /**
