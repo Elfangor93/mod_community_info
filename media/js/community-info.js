@@ -67,16 +67,18 @@ let openModal = function(modalId, location) {
 /**
  * Perform an ajax request in json format
  * 
- * @param   {String} location  Coordinates of the current location (e.g 51.5000,0.0000)
- * @param   {String} method    Name of the method in the modules helper file
+ * @param   {String}   location   Coordinates of the current location (e.g 51.5000,0.0000)
+ * @param   {Interger} module_id  ID of the current module
+ * @param   {String}   method     Name of the target method in the module helper class
  * 
  * @returns {Object} Result object
  *          {success: true, status: 200, message: '', messages: {}, data: {}}
  */
-let ajaxLocation = async function(location, method) {
+let ajaxLocation = async function(location, module_id, method) {
   // Create form data
   let formData = new FormData();
-  formData.append('format', 'json');
+  formData.append('format', 'json')
+  formData.append('module_id', module_id);
 
   // Set request parameters
   let parameters = {
@@ -91,46 +93,45 @@ let ajaxLocation = async function(location, method) {
   // Set the URL
   let url = `index.php?option=com_ajax&module=community_info&method=${method}&format=json&current_location=${location}`;
 
-  try {
-    // Perform the fetch request
-    let response = await fetch(url, parameters);
-    let txt = await response.text();
+  // Perform the fetch request
+  let response = await fetch(url, parameters);
+  let txt      = await response.text();
 
-    if (!response.ok) {
-      // Network error
-      return { success: false, status: response.status, message: response.statusText, messages: {}, data: { error: txt, data: null } };
-    }
-
-    // Try parsing JSON response
-    try {
-      let res = JSON.parse(txt);
-
-      // Handle response containing success field
-      if (res.success !== undefined) {
-        res.status = response.status;
-        if (typeof res.data === 'string') {
-          res.data = JSON.parse(res.data);
-        }
-        return res;
-      }
-      
-      // Handle unexpected JSON structure
-      return { success: false, status: response.status, message: "Unexpected response format", messages: {}, data: { error: txt, data: null } };
-    } catch (jsonError) {
-      // Handle case where JSON parsing fails
-      if (txt.includes('Fatal error')) {
-        return { success: false, status: response.status, message: response.statusText, messages: {}, data: { error: txt, data: null } };
-      } else {
-        let [msg, jsonStr] = txt.split('\n{');
-        let temp = JSON.parse('{' + jsonStr);
-        let data = JSON.parse(temp.data);
-        return { success: true, status: response.status, message: msg, messages: temp.messages, data: data };
-      }
-    }
-  } catch (error) {
-    // General catch for unexpected errors
-    return { success: false, status: 500, message: error.message, messages: {}, data: { error: error.toString(), data: null } };
+  if (!response.ok) {
+    // Catch network error
+    return {success: false, status: response.status, message: response.message, messages: {}, data: {error: txt, data:null}};
   }
+
+  let res = null;
+
+  if(txt.startsWith('{"success"')) {
+    // Response is of type json --> everything fine
+    res = JSON.parse(txt);
+    res.status = response.status;
+    try {
+      res.data = JSON.parse(res.data);
+    } catch (e) {
+      // no need to parse a json string.
+    }
+  } else if (txt.includes('Fatal error')) {
+    // PHP fatal error occurred
+    res = {success: false, status: response.status, message: response.statusText, messages: {}, data: {error: txt, data:null}};
+  } else {
+    // Response is not of type json --> probably some php warnings/notices
+    let split = txt.split('\n{"');
+    let temp  = JSON.parse('{"'+split[1]);
+    let data  = JSON.parse(temp.data);
+    res = {success: true, status: response.status, message: split[0], messages: temp.messages, data: data};
+  }
+
+  // Make sure res.data.data.queue is of type array
+  if(typeof res.data.data != "undefined" && res.data.data != null && 'queue' in res.data.data) {
+    if(res.data.data.queue.constructor !== Array) {
+      res.data.data.queue = Object.values(res.data.data.queue);
+    }
+  }
+
+  return res;
 };
 
 /**

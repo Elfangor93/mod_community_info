@@ -35,7 +35,30 @@ class CommunityInfoHelper
      *
      * @var Registry
      */
-    static public $params = null;
+    static protected $params = null;
+
+    /**
+     * ID of the current module
+     *
+     * @var int
+     */
+    static protected $module_id = null;
+
+    /**
+     * Initialize the helper variables
+     *
+     * @param   int        $id      Id of the current module
+     * @param   Registry   $params  Object holding the module parameters
+     *
+     * @return  void
+     *
+     * @since   4.5.0
+     */
+    static public function initialize(int $id, Registry $params)
+    {
+      self::setID($id);
+      self::setParams($params);
+    }
 
     /**
      * Get a list of links from the endpoint given in the module params.
@@ -162,16 +185,22 @@ class CommunityInfoHelper
         
         return 'Permission denied!';
       }
+
+      if(!$module_id = $input->get('module_id', false, 'int')) {
+        
+        return 'You must provide a "module_id" variable with the request!';
+      }
       
       if(!$current_location = $input->get('current_location', false, 'string')) {
         
         return 'You must provide a "current_location" variable with the request!';
       }
 
+      self::setID($module_id);
       $params           = self::setParams();
       $current_location = self::fixCoordination($current_location);
 
-      if($params->location != $current_location)
+      if($params->get('location') != $current_location)
       {
         // Update location param
         $params->set('location', \trim($current_location));
@@ -181,7 +210,7 @@ class CommunityInfoHelper
 
         $query->update($db->quoteName('#__modules'))
                               ->set($db->quoteName('params').' = '. $db->quote($params->toString('json')))
-                              ->where($db->quoteName('module').' = '. $db->quote('mod_community_info'));
+                              ->where($db->quoteName('id').' = '. self::$module_id);
 
         $db->setQuery($query);
 
@@ -199,6 +228,7 @@ class CommunityInfoHelper
      * @return  Registry  Module parameters
      *
      * @since   4.5.0
+     * @throws  \Exception
      */
     static protected function setParams($params = null)
     {
@@ -206,11 +236,28 @@ class CommunityInfoHelper
         if(!\is_null($params)) {
           self::$params = $params;
         } else {
+          if(\is_null(self::$module_id)) {
+            throw new \Exception('Module ID is needed in order to load params from db!', 1);
+          }
           self::loadParams();
         }
       }
 
       return self::$params;
+    }
+
+    /**
+     * Setter for the module_id
+     *
+     * @return  int
+     *
+     * @since   4.5.0
+     */
+    static protected function setID(int $id): int
+    {
+      self::$module_id = $id;
+
+      return $id;
     }
 
     /**
@@ -228,7 +275,7 @@ class CommunityInfoHelper
       $query = $db->getQuery(true)
                 ->select($db->quoteName('params'))
                 ->from($db->quoteName('#__modules'))
-                ->where($db->quoteName('module').' = '. $db->quote('mod_community_info'));
+                ->where($db->quoteName('id').' = '. self::$module_id);
 
       $db->setQuery($query);
 

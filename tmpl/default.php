@@ -90,7 +90,7 @@ $currentURL   = Uri::getInstance()->toString();
 
 <template id="template-location-picker">
   <div class="select-location">
-    <a href="" onclick="openModal('location-modal', <?php echo CommunityInfoHelper::getLocation($params, 'geolocation'); ?>)">
+    <a href="#" onclick="openModal('location-modal', '<?php echo CommunityInfoHelper::getLocation($params, 'geolocation'); ?>')">
       <i class="icon-location"></i>
       <?php echo Text::_('MOD_COMMUNITY_INFO_CHOOSE_LOCATION'); ?>
     </a><span> (<?php echo Text::_('JCURRENT'); ?>: <?php echo CommunityInfoHelper::getLocation($params, 'label'); ?>)</span>
@@ -110,6 +110,7 @@ $currentURL   = Uri::getInstance()->toString();
           <div class="control-label"><label for="jform_lng" id="jfrom_lng-lbl">Longitude</label></div>
           <div class="controls"><input id="jform_lng" class="from-control" type="text" name="jform[lng]" value="<?php echo \trim($currentLoc[1]); ?>"></div>
         </div>
+        <input id="jform_modid" class="hidden" type="hidden" name="jform[modid]" value="<?php echo $module->id; ?>">
       </div>
     </div>
   </form>
@@ -137,7 +138,7 @@ echo HTMLHelper::_('bootstrap.renderModal', 'location-modal', $options, '<p>Load
       let location = await getCurrentLocation();
       console.log('Current Location:', location);
       
-      let response = await ajaxLocation(location, 'setLocation');
+      let response = await ajaxLocation(location, <?php echo $module->id; ?>, 'setLocation');
       console.log('Ajax Response:', response);
     } catch (error) {
       console.error('Error:', error);

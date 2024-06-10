@@ -63,6 +63,10 @@ class Dispatcher extends AbstractModuleDispatcher implements HelperFactoryAwareI
     {
         $data = parent::getLayoutData();
 
+        // Initialize the helper class
+        $this->getHelperFactory()->getHelper('CommunityInfoHelper')->initialize($this->module->id, $data['params']);
+
+        // Get links and location
         $data['links']      = $this->getHelperFactory()->getHelper('CommunityInfoHelper')->getLinks($data['params'], $this->getApplication());
         $data['currentLoc'] = \explode(',', $this->getHelperFactory()->getHelper('CommunityInfoHelper')->getLocation($data['params'], 'geolocation'), 2);
 
