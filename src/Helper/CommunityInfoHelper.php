@@ -64,7 +64,10 @@ class CommunityInfoHelper
     /**
      * Get a list of links from the endpoint given in the module params.
      * 
-     * Endpoint:
+     * Endpoint structure:
+     * @see includes/endpoint.json
+     * 
+     * Find closest organisation:
      * https://www.codexworld.com/radius-based-location-search-by-distance-php-mysql/
      *
      * @param   Registry   $params   Object holding the module parameters
@@ -77,11 +80,37 @@ class CommunityInfoHelper
     {
         self::setParams($params);
 
-        // Load the default values
+        // Load the local default values
         require_once JPATH_ADMINISTRATOR.'/modules/mod_community_info/includes/default_links.php';
         $links = new Registry($default_links_array);
 
-        // ToDo: Load links from endpoint
+        // Load links from endpoint
+        $vars = ['location' => self::getLocation($params, 'geolocation')];
+        $url  = $params->get('endpoint', 'http://www.example.com');
+        if($api_link_sets = self::fetchAPI($url, $vars)) {
+          // Sort the returned data based on level with descending order
+          \usort($api_link_sets, fn($a, $b) => $b['level'] <=> $a['level']);
+          
+          // Search for a suitable link value in returned data
+          foreach ($links as $k => $link_val) {
+            foreach ($api_link_sets as $api_set_k => $api_link_set) {
+              $found = false;
+
+              foreach ($api_link_set as $api_k => $api_link_val) {
+                if($k == $api_k) {
+                  // As soon as we found a suitable value, we override it with the local default one
+                  $links->set($k, $api_link_val);
+                  $found = true;
+
+                  break;
+                }
+              }
+
+              // If we already found a suitable value, we went on to the next link
+              if($found) break;
+            }
+          }
+        }
 
         return $links;
     }
@@ -137,6 +166,75 @@ class CommunityInfoHelper
       return $location;
     }
 
+    /**
+     * Get the most recent news articles
+     *
+     * @param   string   $url   The url of the RSS news feed
+     * @param   int      $num   Number of articles to be returned
+     *
+     * @return  array    List of articles
+     *
+     * @since   4.5.0
+     */
+    static public function getNewsFeed(string $url, int $num=3)
+    {
+      // Load rss xml from endpoint
+      $vars  = [];
+      $items = [];
+
+      if($rss  = self::fetchAPI($url, $vars, 'xml')) {
+        foreach ($rss->channel->item as $item) {
+          $obj = new \stdClass();
+          $obj->title = (string) $item->title;
+          $obj->link = (string) $item->link;
+          $obj->guid = (string) $item->guid;
+          $obj->description = (string) $item->description;
+          $obj->category = (string) $item->category;
+          $obj->pubDate = (string) $item->pubDate;
+          $items[] = $obj;
+        }
+
+        // Sort the items by pubDate in descending order
+        \usort($items, fn($a, $b) => \strtotime($b->pubDate) <=> \strtotime($a->pubDate));
+
+        // Select n most recent items
+        $items = \array_slice($items, 0, $num);
+      }      
+
+      return $items;
+    }
+
+    /**
+     * Get the next events
+     *
+     * @param   string    $url     The url of the JSON events feed
+     * @param   int       $num     Number of articles to be returned
+     *
+     * @return  array    List of events
+     *
+     * @since   4.5.0
+     */
+    static public function getEventsFeed(string $url, int $num=3)
+    {
+      // Load json from endpoint
+      $vars           = [];
+      $upcomingEvents = [];
+
+      if($events  = self::fetchAPI($url, $vars, 'json')) {
+        // Sort the array by the 'start' property to ensure events are in chronological order
+        \usort($events, fn($a, $b) => \strtotime($a['start']) <=> \strtotime($b['start']));
+
+        // Select the next n upcoming events
+        $nextThreeEvents = \array_slice($events, 0, $num);
+
+        // Convert each event to an stdClass object and store them in a new array
+        $upcomingEvents = \array_map(function ($event) {
+            return (object) $event;
+        }, $nextThreeEvents);
+      }
+
+      return $upcomingEvents;
+    }
     
     /**
      * Replace placeholders in a text string
@@ -200,7 +298,7 @@ class CommunityInfoHelper
 
       self::setID($module_id);
       $params           = self::setParams();
-      $current_location = self::fixCoordination($current_location);
+      $current_location = self::fixGeolocation($current_location);
 
       if($params->get('auto_location', 1) && $params->get('location') != $current_location)
       {
@@ -242,7 +340,7 @@ class CommunityInfoHelper
       // Get input data
       $input            = Factory::getApplication()->input;
       $jform            = $input->getArray(array( 'jform' => array('lat'=>'string', 'lng'=>'string', 'autoloc'=>'bool') ));
-      $current_location = self::fixCoordination($jform['jform']['lat'].','.$jform['jform']['lng']);
+      $current_location = self::fixGeolocation($jform['jform']['lat'].','.$jform['jform']['lng']);
 
       // Update module params
       $params->set('location', \trim($current_location));
@@ -369,7 +467,7 @@ class CommunityInfoHelper
 
       // Fetch address from openstreetmap
       try {
-        $json = file_get_contents($url, false, $context);
+        $json = \file_get_contents($url, false, $context);
       } catch (\Exception $e) {        
         Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_OPENSTREATMAP_NOMINATIM', $domain, $email), 'warning');
 
@@ -482,24 +580,67 @@ class CommunityInfoHelper
     }
 
     /**
-     * Fix a coordinates string
+     * Fix a geolocation string
      *
-     * @param   string   $coordinates   Coordinates string
+     * @param   string   $geolocation   Geolocation string
      *
      * @return  string   Fixed string
      *
      * @since   4.5.0
      */
-    static protected function fixCoordination(string $coordinates): string
+    static protected function fixGeolocation(string $geolocation): string
     {
-        $coor_arr = \explode(',', $coordinates, 2);
+        $coor_arr = \explode(',', $geolocation, 2);
 
         $lat_arr = \explode('.', $coor_arr[0], 2);
         $lng_arr = \explode('.', $coor_arr[1], 2);
 
         // Create the form 51.5000,0.0000
-        $coordinates = \trim($lat_arr[0]).'.'.\trim(\substr($lat_arr[1], 0, 4)).','.\trim($lng_arr[0]).'.'.\trim(\substr($lng_arr[1], 0, 4));
+        $geolocation = \trim($lat_arr[0]).'.'.\trim(\substr($lat_arr[1], 0, 4)).','.\trim($lng_arr[0]).'.'.\trim(\substr($lng_arr[1], 0, 4));
 
-        return $coordinates;
+        return $geolocation;
+    }
+
+    /**
+     * Fetches data from joomla.org endpoints
+     * 
+     * @param   string   $url         Request url
+     * @param   array    $variables   Request variables
+     * @param   string   $format      The expected format of the returned content
+     *
+     * @return  mixed    The fetched content on success, false otherwise
+     *
+     * @since   4.5.0
+     */
+    static protected function fetchAPI(string $url, array $variables, string $format='json')
+    {
+      $domain    = \str_replace(Uri::base(true), '', Uri::base());
+      $email     = self::getSuperUserMails()[0];
+      $target    = $url.'?'.\http_build_query($variables);
+      $options   = ['http' => ['method' => 'GET', 'header' => 'User-Agent: '.\trim($email).'\r\n' .
+                                                              'Referer: '.\trim($domain).'\r\n']];
+      $context = \stream_context_create($options);
+
+      // Fetch address from joomla.org
+      try {
+        $raw_data = \file_get_contents($target, false, $context);
+
+        if($format == 'json') {
+          $data = \json_decode($raw_data, true);
+        }
+        elseif ($format == 'xml') {
+          $data = \simplexml_load_string($raw_data);
+        }
+        else {
+          $data = $raw_data;
+        }
+        
+      } catch (\Exception $e) {        
+        Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_FETCH_API', $target), 'warning');
+
+        return False;
+      }
+      
+      return $data;
     }
 }

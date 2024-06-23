@@ -49,12 +49,12 @@ $currentURL   = Uri::getInstance()->toString();
     </div>
     <table id="collapseNews" class="table community-info-news collapse">
       <tbody>
-        <tr>
-          <td scope="row"><a href="https://www.joomla.de/news/joomla/joomla-5-1-0-und-joomla-4-4-4-veroeffentlicht" target="_blank">Hurra, Joomla 5.1.0 und Joomla! 4.4.4 sind da</a></td>
-        </tr>
-        <tr>
-          <td><a href="https://www.joomla.de/news/joomla/joomla-5-1-release-candidate-veroeffentlicht" target="_blank">Joomla! 5.1 Release Candidate veröffentlicht</a></td>
-        </tr>
+        <?php foreach ($news as $n => $article) : ?>
+          <tr>
+            <td scope="row"><a href="<?php echo $article->link; ?>" target="_blank"><?php echo $article->title; ?></a></td>
+            <td style="text-align: right"><span class="small"><?php echo HTMLHelper::_('date', $article->pubDate, 'M j, Y'); ?></span></td>
+          </tr>
+        <?php endforeach; ?>
       </tbody>
     </table>
   </div>  
@@ -69,14 +69,12 @@ $currentURL   = Uri::getInstance()->toString();
     </div>
     <table id="collapseEvents" class="table table-sm community-info-news collapse">
       <tbody>
-        <tr>
-          <td scope="row"><strong>JUG Trimbach</strong><br /><span class="small">Meetup - Trimbach, Schweiz</span></td>
-          <td style="text-align: right"><span class="small">Montag, Jun 3, 2024</span><br /><span class="small">19:00 GMT+2</span></td>
-        </tr>
-        <tr>
-          <td scope="row"><strong>JUG Trimbach</strong><br /><span class="small">Meetup - Trimbach, Schweiz</span></td>
-          <td style="text-align: right"><span class="small">Montag, Jun 3, 2024</span><br /><span class="small">19:00 GMT+2</span></td>
-        </tr>
+        <?php foreach ($events as $e => $event) : ?>
+          <tr>
+            <td scope="row"><strong><a href="<?php echo $event->url; ?>" target="_blank"><?php echo $event->title; ?></a></strong><br /><span class="small"><?php echo $event->location; ?></span></td>
+            <td style="text-align: right"><span class="small"><?php echo HTMLHelper::_('date', $event->start, 'D, M j, Y'); ?></span><br /><span class="small"><?php echo HTMLHelper::_('date', $event->start, 'H:i T'); ?></span></td>
+          </tr>
+        <?php endforeach; ?>
       </tbody>
     </table>
   </div>

@@ -18,6 +18,7 @@
  */
 $default_links_array = [
     "name"        => "joomla.org",
+    "type"        => "default",
     "level"       => "0",
     "jug"         => "https://community.joomla.org/user-groups",
     "forum"       => "https://forum.joomla.org",
@@ -26,6 +27,6 @@ $default_links_array = [
     "vportal"     => "https://volunteers.joomla.org",
     "geolocation" => "51.5000,0.0000",
     "news_feed"   => "https://community.joomla.org/blogs?format=feed&type=rss",
-    "events_feed" => "https://community.joomla.org/events?format=feed&type=ical",
+    "events_feed" => "https://djumla.dev/joomla-community-api/events.php?url=https://community.joomla.org/events\?format=feed&type=ical",
     "newsletter"  => "https://community.joomla.org/general-newsletter"
 ];
