@@ -25,6 +25,9 @@ $wa->useScript('communityinfo.script');
 $lang         = $app->getLanguage();
 $extension    = $app->getInput()->get('option');
 $currentURL   = Uri::getInstance()->toString();
+
+// Add language constants
+CommunityInfoHelper::addText();
 ?>
 
 <div id="CommunityInfo<?php echo strval($module->id); ?>" class="mod-community-info px-3">
@@ -103,7 +106,7 @@ $currentURL   = Uri::getInstance()->toString();
             <button class="btn btn-outline-secondary" type="button" id="btn-locsearch" onclick="searchLocation()">Search</button>
           </div>
         </div>
-        <div id="locsearch_results"></div>
+        <div id="locsearch_results" class="input-group mb-3"></div>
         <input id="module_task" class="hidden" type="hidden" name="module_task" value="">
         <input id="jform_lat" class="hidden" type="hidden" name="jform[lat]" value="<?php echo \trim($currentLoc[0]); ?>">
         <input id="jform_lng" class="hidden" type="hidden" name="jform[lng]" value="<?php echo \trim($currentLoc[1]); ?>">        
@@ -119,7 +122,7 @@ $currentURL   = Uri::getInstance()->toString();
 // Location form modal
 $options = array('modal-dialog-scrollable' => true,
                   'title'  => Text::_('MOD_COMMUNITY_INFO_CHOOSE_LOCATION'),
-                  'footer' => '<button onclick="autoLoc()" class="btn">'.Text::_('MOD_COMMUNITY_INFO_AUTO_LOCATION').'</button><button onclick="saveLoc()" class="btn btn-primary">'.Text::_('MOD_COMMUNITY_INFO_SAVE_LOCATION').'</button>',
+                  'footer' => '<button onclick="autoLoc()" class="btn">'.Text::_('MOD_COMMUNITY_INFO_AUTO_LOCATION').'</button><button id="saveLocBtn" disabled onclick="saveLoc()" class="btn btn-primary">'.Text::_('MOD_COMMUNITY_INFO_SAVE_LOCATION').'</button>',
                 );
 echo HTMLHelper::_('bootstrap.renderModal', 'location-modal', $options, '<p>Loading...</p>');
 ?>
@@ -139,7 +142,7 @@ echo HTMLHelper::_('bootstrap.renderModal', 'location-modal', $options, '<p>Load
       console.log('Current Location:', location);
       
       let response = await ajaxLocation(location, <?php echo $module->id; ?>, 'setLocation');
-      console.log('Ajax Response:', response);
+      console.log('Ajax Response:', Joomla.Text._(response));
     } catch (error) {
       console.error('Error:', error);
     }

@@ -646,4 +646,21 @@ class CommunityInfoHelper
       
       return $data;
     }
+
+    /**
+     * Adds language constants to JavaScript
+     *
+     * @since   4.5.0
+     */
+    static public function addText()
+    {
+      Text::script('MOD_COMMUNITY_ERROR_SAVE_LOCATION');
+      Text::script('MOD_COMMUNITY_SUCCESS_SAVE_LOCATION');
+      Text::script('MOD_COMMUNITY_MSG_SAVE_LOCATION_NOT_NEEDED');
+      Text::script('MOD_COMMUNITY_ERROR_FETCH_API');
+      Text::script('MOD_COMMUNITY_ERROR_BROWSER_CONSOLE');
+      Text::script('MOD_COMMUNITY_MSG_NO_LOCATIONS_FOUND');
+      Text::script('MOD_COMMUNITY_MSG_GEOLOCATION_NOT_SUPPORTED');
+      Text::script('MOD_COMMUNITY_ERROR_GET_LOCATION');
+    }
 }

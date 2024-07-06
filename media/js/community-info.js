@@ -28,7 +28,7 @@ let autoLoc = async function() {
 }
 
 /**
- * Save manual chosen location
+ * Save manually chosen location
  */
 let saveLoc = function() {
   document.getElementById('jform_autoloc').value = '0';
@@ -37,7 +37,62 @@ let saveLoc = function() {
 }
 
 /**
- * Perform an ajax request in json format
+ * Search for a location
+ */
+let searchLocation = async function() {
+  let search = document.getElementById('locsearch').value;
+
+  // Fetch search results
+  let res = await fetchAPI('https://nominatim.openstreetmap.org/search.php',{'q': search, 'format': 'jsonv2'});
+
+  console.log(res);
+
+  if(Array.isArray(res) && res.length > 0) {
+    // Create the selection list
+    let select = '<select class="form-select" size="'+Math.min(res.length, 15)+'" onchange="locationSelectChange(event)">';
+    res.forEach((result, i) => {
+      selected = '';
+      if (i === 0) {
+        selected = 'selected ';
+      }
+
+      select = select + '<option '+selected+'value="'+result.lat+','+result.lon+'">'+result.name+' ('+result.display_name.slice(0, 100) + '...)</option>';
+    });
+    select = select + '</select>';
+
+    // Add first element to input
+    document.getElementById('jform_lat').value = res[0].lat;
+    document.getElementById('jform_lng').value = res[0].lon;
+
+    // Activate button
+    document.getElementById('saveLocBtn').disabled = false;
+
+    // Place selection into DOM
+    document.getElementById('locsearch_results').innerHTML = select;
+  } else {
+    document.getElementById('locsearch_results').innerHTML = '<p>'+Joomla.Text._('MOD_COMMUNITY_MSG_NO_LOCATIONS_FOUND')+'</p>';
+
+    // Deactivate button
+    document.getElementById('saveLocBtn').disabled = true;
+  }
+}
+
+/**
+ * Change manual location selection
+ */
+let locationSelectChange = function(event) {
+  let selectedValue = event.target.value;
+
+  // Add first element to input
+  document.getElementById('jform_lat').value = selectedValue.split(',', 2)[0];
+  document.getElementById('jform_lng').value = selectedValue.split(',', 2)[1];
+
+  // Activate button
+  document.getElementById('saveLocBtn').disabled = false;
+}
+
+/**
+ * Set the automatic detected location via ajax
  * 
  * @param   {String}   location   Coordinates of the current location (e.g 51.5000,0.0000)
  * @param   {Interger} module_id  ID of the current module
@@ -71,40 +126,122 @@ let ajaxLocation = async function(location, module_id, method) {
 
   if (!response.ok) {
     // Catch network error
-    return {success: false, status: response.status, message: response.message, messages: {}, data: {error: txt, data:null}};
+    let message = Joomla.Text._('MOD_COMMUNITY_ERROR_SAVE_LOCATION');
+    let message2 = Joomla.Text._('MOD_COMMUNITY_ERROR_BROWSER_CONSOLE');
+    Joomla.renderMessages({'error':[message+' '+sprintf(message2, 'Network error')]});
+
+    console.log('mod_community_info: ajaxLocation request failed.');
+    console.log('Status Code: '+response.status+'. Message: '+response.statusText);
+    return;
   }
 
-  let res = null;
+  let data = null;
 
   if(txt.startsWith('{"success"')) {
     // Response is of type json --> everything fine
-    res = JSON.parse(txt);
-    res.status = response.status;
+    let res = JSON.parse(txt);
     try {
-      res.data = JSON.parse(res.data);
+      data = JSON.parse(res.data);
     } catch (e) {
       // no need to parse a json string.
+      data = res.data;
     }
   } else if (txt.includes('Fatal error')) {
     // PHP fatal error occurred
-    res = {success: false, status: response.status, message: response.statusText, messages: {}, data: {error: txt, data:null}};
+    let message = Joomla.Text._('MOD_COMMUNITY_ERROR_SAVE_LOCATION');
+    let message2 = Joomla.Text._('MOD_COMMUNITY_ERROR_BROWSER_CONSOLE');
+    Joomla.renderMessages({'error':[message+' '+sprintf(message2, 'PHP error')]});
+
+    console.log('mod_community_info: ajaxLocation request failed.');
+    console.log(txt);
   } else {
     // Response is not of type json --> probably some php warnings/notices
     let split = txt.split('\n{"');
     let temp  = JSON.parse('{"'+split[1]);
     let data  = JSON.parse(temp.data);
-    res = {success: true, status: response.status, message: split[0], messages: temp.messages, data: data};
+
+    let message = Joomla.Text._('MOD_COMMUNITY_ERROR_SAVE_LOCATION');
+    let message2 = Joomla.Text._('MOD_COMMUNITY_ERROR_BROWSER_CONSOLE');
+    Joomla.renderMessages({'error':[message+' '+sprintf(message2, 'PHP warnings')]});
+    console.log('mod_community_info: ajaxLocation request failed.');
+    console.log('Message: '+split[0]);
+    console.log('Messages: '+temp.messages);
+    console.log('Data: '+data);
   }
 
-  // Make sure res.data.data.queue is of type array
-  if(typeof res.data.data != "undefined" && res.data.data != null && 'queue' in res.data.data) {
-    if(res.data.data.queue.constructor !== Array) {
-      res.data.data.queue = Object.values(res.data.data.queue);
-    }
-  }
-
-  return res;
+  return data;
 };
+
+/**
+ * Fetches data from an endpoint
+ * 
+ * @param   {String}   url        Request url
+ * @param   {Object}   variables  Request variables
+ * @param   {String}   format     The expected format of the returned content
+ * 
+ * @returns {Object} Result object
+ */
+let fetchAPI = async function(url, variables={}, format='json') {
+  let urlSearchParams = new URLSearchParams(variables);
+
+  if(Object.keys(variables).length != 0) {
+    url = url+'?'+urlSearchParams.toString();
+  }
+
+  // Set request parameters
+  let parameters = {
+    method: 'GET',
+    mode: 'cors',
+    cache: 'default',
+    redirect: 'follow',
+    referrerPolicy: 'origin'
+  };
+
+  // Perform the fetch request
+  let response = await fetch(url, parameters);
+
+  if (!response.ok) {
+    // Catch network error
+    let message = Joomla.Text._('MOD_COMMUNITY_ERROR_FETCH_API');
+    Joomla.renderMessages({'error':[sprintf(message, url, response.status, response.statusText)]});
+    console.log('mod_community_info: fetchAPI request failed. Status Code: '+response.status+'. Message: '+response.statusText);
+    return;
+  }
+
+  // Request successful
+  let txt       = await response.text();
+  let error     = false;
+  let errorcode = '';
+  let data;
+
+  if(format == 'json') {
+    try {
+      data = JSON.parse(txt);
+    } catch (error) {
+      error     = true;
+      errorcode = error.message;
+    }
+  } else if(format == 'xml') {
+    let parser = new DOMParser();
+    data = parser.parseFromString(txt, "text/xml");
+
+    if(data.getElementsByTagName("parsererror").length > 0) {
+      error     = true;
+      errorcode = data.getElementsByTagName("parsererror")[0].textContent;
+    }
+  } else {
+    data = txt;
+  }
+
+  if(error) {
+    // Parsing error
+    let message = Joomla.Text._('MOD_COMMUNITY_ERROR_FETCH_API');
+    Joomla.renderMessages({'error':[sprintf(message, url, '-', errorcode)]});
+    console.log('mod_community_info: fetchAPI request failed. Status Code: -. Message: '+errorcode);
+  } else {
+    return data;
+  }
+}
 
 /**
  * Get current position of device
@@ -120,11 +257,26 @@ let getCurrentLocation = async function() {
           resolve(`${latitude},${longitude}`);
         },
         (error) => {
-          reject(`Error getting location: ${error.message}`);
+          reject(Joomla.Text._('MOD_COMMUNITY_ERROR_GET_LOCATION')+' '+error.message);
         }
       );
     } else {
-      reject('Geolocation is not supported by this browser.');
+      reject(Joomla.Text._('MOD_COMMUNITY_MSG_GEOLOCATION_NOT_SUPPORTED'));
     }
   });
 };
+
+/**
+ * Sprintf functionality for JText
+ * 
+ * @param   {String}   text   The text string
+ * 
+ * @returns {String}   The processed text
+ */
+let sprintf = function(text) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  var i = 0;
+  return text.replace(/%s/g, function() {
+    return args[i++];
+  });
+}
