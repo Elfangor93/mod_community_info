@@ -1,6 +1,3 @@
-.leaflet-attribution-flag {
-  display: none !important;
-}
 .select-location {
   font-weight: 400;
   padding-left: 1em;
@@ -21,4 +18,9 @@
 }
 .mod-community-info h3 {
   font-size: 1.05rem;
+}
+.mod-community-info.modal .btn-primary
+{
+  color: var(--btn-primary-color) !important;
+  background-color: var(--btn-primary-bg) !important;
 }

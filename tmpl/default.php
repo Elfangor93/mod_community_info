@@ -129,11 +129,13 @@ echo HTMLHelper::_('bootstrap.renderModal', 'location-modal', $options, '<p>Load
 
 <script>
   async function callback(){
-    // prepare location picker module
+    // prepare location picker
     let moduleBody   = document.getElementById('CommunityInfo<?php echo strval($module->id); ?>');
     let moduleHeader = moduleBody.parentNode.previousElementSibling;
-
     moduleHeader.appendChild(document.getElementById('template-location-picker').content);
+
+    // prepare modal
+    document.getElementById('location-modal').classList.add('mod-community-info');
 
     // Send browsers current geolocation to com_ajax
     <?php if(intval($params->get('auto_location', 1))) : ?>
