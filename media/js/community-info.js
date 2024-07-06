@@ -10,7 +10,19 @@ let openModal = function(modalId, location) {
   modalBody.innerHTML  = document.getElementById('template-'+modalId+'-body').innerHTML;
 
   bsmodal = new bootstrap.Modal(document.getElementById(modalId), {keyboard: false});
-  bsmodal.show();   
+  bsmodal.show();
+  
+  if(modalId == 'location-modal') {
+    // Define default submit button of location form
+    document.getElementById('location-form').addEventListener('keydown', function(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+
+        // Trigger the desired button
+        document.getElementById('btn-locsearch').click();
+      }
+    });
+  }
 }
 
 /**
