@@ -11,8 +11,8 @@
 namespace Joomla\Module\CommunityInfo\Administrator\Helper;
 
 use Joomla\CMS\Access\Access;
-use Joomla\CMS\Application\AdministratorApplication;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Http\HttpFactory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Session\Session;
 use Joomla\CMS\Table\Table;
@@ -63,12 +63,6 @@ class CommunityInfoHelper
 
     /**
      * Get a list of links from the endpoint given in the module params.
-     * 
-     * Endpoint structure:
-     * @see includes/endpoint.json
-     * 
-     * Find closest organisation:
-     * https://www.codexworld.com/radius-based-location-search-by-distance-php-mysql/
      *
      * @param   Registry   $params   Object holding the module parameters
      *
@@ -303,7 +297,8 @@ class CommunityInfoHelper
       if($params->get('auto_location', 1) && $params->get('location') != $current_location)
       {
         // Update location param
-        $params->set('location', \trim($current_location));
+        $params->set('location_name', self::resolveLocation(\trim($current_location)));
+        $params->set('location', \trim($current_location));        
 
         // Write updates to db
         try {
@@ -343,8 +338,9 @@ class CommunityInfoHelper
       $current_location = self::fixGeolocation($jform['jform']['lat'].','.$jform['jform']['lng']);
 
       // Update module params
+      $params->set('location_name', self::resolveLocation(\trim($current_location)));
       $params->set('location', \trim($current_location));
-      $params->set('auto_location', \intval($jform['jform']['autoloc']));
+      $params->set('auto_location', \intval($jform['jform']['autoloc']));      
 
       // Write updates to db
       try {
@@ -456,56 +452,60 @@ class CommunityInfoHelper
      *
      * @since   4.5.0
      */
-    static protected function resolveLocation($lat, $lng)
+    static protected function resolveLocation($lat, $lng='')
     {
-      $domain  = \str_replace(Uri::base(true), '', Uri::base());
-      $email   = self::getSuperUserMails()[0];
-      $url     = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='.\trim($lat).'&lon='.\trim($lng);
-      $options = ['http' => ['method' => 'GET', 'header' => 'User-Agent: '.\trim($email).'\r\n' .
-                                                            'Referer: '.\trim($domain).'\r\n']];
-      $context = \stream_context_create($options);
-
-      // Fetch address from openstreetmap
-      try {
-        $json = \file_get_contents($url, false, $context);
-      } catch (\Exception $e) {        
-        Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_OPENSTREATMAP_NOMINATIM', $domain, $email), 'warning');
-
-        return $lat.', '.$lng;
+      if($lng == '') {
+          $loc_arr = \explode(',', $lat, 2);
+          $lat     = \trim($loc_arr[0]);
+          $lng     = \trim($loc_arr[1]);
       }
-      
-      $data = \json_decode($json);
 
-      if($data && isset($data->address))
-      {
-        $loc = '';
-
-        // Get town/city
-        if(isset($data->address->city)) {
-          $loc .= $data->address->city;
-        } elseif(isset($data->address->town)) {
-          $loc .= $data->address->town;
-        }
-
-        // Get state
-        if(isset($data->address->state)) {
-          $loc .= empty($loc) ? '': ', ';
-          $loc .= $data->address->state;
-        }
-
-        // Get country code
-        if(isset($data->address->country_code)) {
-          $loc .= empty($loc) ? '': ', ';
-          $loc .= \strtoupper($data->address->country_code);
-        }
-
-        return $loc;
+      if(self::$params->get('location', '51.5000,0.0000') == $lat.','.$lng) {
+          return self::$params->get('location_name', 'London, England, GB');
       }
-      else
-      {
-        Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_OPENSTREATMAP_NOMINATIM', $domain, $email), 'warning');
 
-        return $lat.', '.$lng;
+      $url  = 'https://nominatim.openstreetmap.org/reverse';
+      $vars = ['format' => 'jsonv2', 'lat' => \trim($lat), 'lon' => \trim($lng)];
+
+      if(!$data = self::fetchAPI($url, $vars)) {
+          return $lat.', '.$lng;
+      }
+
+      if($data && isset($data['address'])) {
+          $loc = '';
+
+          // Get town/city
+          if(isset($data['address']['city'])) {
+              $loc .= $data['address']['city'];
+          } elseif(isset($data['address']['town'])) {
+              $loc .= $data['address']['town'];
+          }
+
+          // Get state
+          if(isset($data['address']['state'])) {
+              $loc .= empty($loc) ? '': ', ';
+              $loc .= $data['address']['state'];
+          }
+
+          // Get country code
+          if(isset($data['address']['country_code'])) {
+              $loc .= empty($loc) ? '': ', ';
+              $loc .= \strtoupper($data['address']['country_code']);
+          }
+
+          // Write updates to db
+          try {
+            self::$params->set('location_name', $loc);
+            self::writeParams(self::$params);
+          } catch (\Exception $e) {
+            Factory::getApplication()->enqueueMessage(Text::_('MOD_COMMUNITY_ERROR_SAVE_LOCATION') . ' ' . $e->getMessage(), 'warning');
+          }
+
+          return $loc;
+      } else {
+          Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_OPENSTREATMAP_NOMINATIM', $domain, $email), 'warning');
+
+          return $lat.', '.$lng;
       }
     }
 
@@ -602,7 +602,7 @@ class CommunityInfoHelper
     }
 
     /**
-     * Fetches data from joomla.org endpoints
+     * Fetches data from endpoints
      * 
      * @param   string   $url         Request url
      * @param   array    $variables   Request variables
@@ -617,28 +617,31 @@ class CommunityInfoHelper
       $domain    = \str_replace(Uri::base(true), '', Uri::base());
       $email     = self::getSuperUserMails()[0];
       $target    = $url.'?'.\http_build_query($variables);
-      $options   = ['http' => ['method' => 'GET', 'header' => 'User-Agent: '.\trim($email).'\r\n' .
-                                                              'Referer: '.\trim($domain).'\r\n']];
-      $context = \stream_context_create($options);
+
+      // Create options
+      $options = new Registry();
+      $options->set('userAgent', $email);
+      $options->set('headers', ['Referer' => \trim($domain)]);
 
       // Fetch address from joomla.org
       try {
-        $raw_data = \file_get_contents($target, false, $context);
+        $response = HttpFactory::getHttp($options)->get($target);
+      } catch (\Exception $e) {
+          Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_FETCH_API', $target, $e->getCode(), $e), 'warning');
+      }
 
-        if($format == 'json') {
-          $data = \json_decode($raw_data, true);
-        }
-        elseif ($format == 'xml') {
-          $data = \simplexml_load_string($raw_data);
-        }
-        else {
-          $data = $raw_data;
-        }
-        
-      } catch (\Exception $e) {        
-        Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_FETCH_API', $target), 'warning');
+      if ($response->code != 200) {
+          Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_FETCH_API', $target, $response->code, $response->body), 'warning');
+      }
 
-        return False;
+      if($format == 'json') {
+        $data = \json_decode($response->body, true);
+      }
+      elseif ($format == 'xml') {
+        $data = \simplexml_load_string($response->body);
+      }
+      else {
+        $data = $response->body;
       }
       
       return $data;

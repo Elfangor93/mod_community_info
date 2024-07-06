@@ -17,13 +17,10 @@ use Joomla\Module\CommunityInfo\Administrator\Helper\CommunityInfoHelper;
 
 /** @var Joomla\CMS\WebAsset\WebAssetManager $wa */
 $wa = $app->getDocument()->getWebAssetManager();
-$wa->useStyle('communityinfo.leaflet');
-$wa->useScript('communityinfo.leaflet');
 $wa->useScript('bootstrap.modal');
 $wa->useScript('bootstrap.collapse');
 $wa->useStyle('communityinfo.style');
 $wa->useScript('communityinfo.script');
-$wa->addInlineStyle('#map * + * {margin: 0;}');
 
 $lang         = $app->getLanguage();
 $extension    = $app->getInput()->get('option');
@@ -99,16 +96,17 @@ $currentURL   = Uri::getInstance()->toString();
   <form action="<?php echo $currentURL; ?>" method="post" enctype="multipart/form-data" name="adminForm" id="location-form" class="form-validate p-3" aria-label="<?php echo Text::_('MOD_COMMUNITY_INFO_CHOOSE_LOCATION'); ?>">
     <div class="row">
       <div class="col-12">
-        <div id="map" class="mb-3" style="height:40vh;width:100%;"></div>
-        <div class="control-group">
-          <div class="control-label"><label for="jform_lat" id="jfrom_lat-lbl">Latitude</label></div>
-          <div class="controls"><input id="jform_lat" class="from-control" type="text" name="jform[lat]" value="<?php echo \trim($currentLoc[0]); ?>"></div>
+        <div class="input-group mb-3">
+          <label for="locsearch" class="form-label">Search Location</label>
+          <input id="locsearch" class="from-control" type="text" aria-label="Location search" aria-describedby="btn-locsearch">
+          <div class="input-group-append">
+            <button class="btn btn-outline-secondary" type="button" id="btn-locsearch" onclick="searchLocation()">Search</button>
+          </div>
         </div>
-        <div class="control-group">
-          <div class="control-label"><label for="jform_lng" id="jfrom_lng-lbl">Longitude</label></div>
-          <div class="controls"><input id="jform_lng" class="from-control" type="text" name="jform[lng]" value="<?php echo \trim($currentLoc[1]); ?>"></div>
-        </div>
+        <div id="locsearch_results"></div>
         <input id="module_task" class="hidden" type="hidden" name="module_task" value="">
+        <input id="jform_lat" class="hidden" type="hidden" name="jform[lat]" value="<?php echo \trim($currentLoc[0]); ?>">
+        <input id="jform_lng" class="hidden" type="hidden" name="jform[lng]" value="<?php echo \trim($currentLoc[1]); ?>">        
         <input id="jform_modid" class="hidden" type="hidden" name="jform[modid]" value="<?php echo $module->id; ?>">
         <input id="jform_autoloc" class="hidden" type="hidden" name="jform[autoloc]" value="<?php $params->get('auto_location', '1'); ?>">
         <?php echo HTMLHelper::_('form.token'); ?>

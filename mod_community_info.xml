@@ -54,6 +54,13 @@
           label="MOD_COMMUNITY_INFO_FIELD_LOCATION_LABEL"
           description="MOD_COMMUNITY_INFO_FIELD_LOCATION_DESC"
         />
+        <field
+          name="location_name"
+          type="text"
+          default="London, England, GB"
+          label="MOD_COMMUNITY_INFO_FIELD_LOCATION_NAME_LABEL"
+          description="MOD_COMMUNITY_INFO_FIELD_LOCATION_NAME_DESC"
+        />
         <field name="auto_location"
              type="radio"
              default="1"
