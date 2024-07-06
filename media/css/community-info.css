@@ -16,6 +16,14 @@
 .info-block {
   margin-bottom: 1rem;
 }
+.info-block img {
+  max-width: 100px;
+  margin: 1rem 0 0 0.5rem;
+}
+.info-block a.no-link::before {
+  content: '';
+  padding: 0;
+}
 .mod-community-info h3 {
   font-size: 1.05rem;
 }
@@ -23,4 +31,8 @@
 {
   color: var(--btn-primary-color) !important;
   background-color: var(--btn-primary-bg) !important;
+}
+.mod-community-info .float-right
+{
+  float: right;
 }

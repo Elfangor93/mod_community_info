@@ -44,7 +44,7 @@ CommunityInfoHelper::addText();
         <h3><?php echo Text::_('MOD_COMMUNITY_INFO_NEWS_TITLE'); ?></h3>
         <p><?php echo Text::_('MOD_COMMUNITY_INFO_NEWS_INTRO'); ?></p>
       </div>
-      <a class="btn btn-primary" href="<?php echo $links->get('newsletter'); ?>" target="_blank"><?php echo Text::_('MOD_COMMUNITY_INFO_NEWS_SUBSCRIBE'); ?></a>
+      <a class="btn btn-primary btn-sm mt-1" href="<?php echo $links->get('newsletter'); ?>" target="_blank"><?php echo Text::_('MOD_COMMUNITY_INFO_NEWS_SUBSCRIBE'); ?></a>
       <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNews" aria-expanded="false" aria-controls="collapseNews"><i class="icon-arrow-down"></i></button>
     </div>
     <table id="collapseNews" class="table community-info-news collapse">
@@ -80,6 +80,7 @@ CommunityInfoHelper::addText();
   </div>
   <hr />
   <div class="info-block contribute">
+    <a class="no-link" href="https://magazine.joomla.org/all-issues/june-2024/holopin-is-ready-to-launch,-claim-your-digital-badge" target="_blank"><img class="float-right" src="<?php echo Uri::root(true).'/media/mod_community_info/image/holopin-badge-board.png'; ?>" alt="joomla volunteer badge"></a>
     <h3><?php echo Text::_('MOD_COMMUNITY_INFO_CONTRIBUTE_TITLE'); ?></h3>
     <p><?php echo CommunityInfoHelper::replaceText(Text::_('MOD_COMMUNITY_INFO_CONTRIBUTE_TEXT'), $links); ?></p>
     <p><?php echo CommunityInfoHelper::replaceText(Text::_('MOD_COMMUNITY_INFO_CONTRIBUTE_CONTACT'), $links); ?></p>
