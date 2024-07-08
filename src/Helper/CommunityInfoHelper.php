@@ -276,7 +276,7 @@ class CommunityInfoHelper
             return 'Permission denied!';
         }
 
-        if (!$moduleId = $input->get('moduleId', false, 'int')) {
+        if (!$moduleId = $input->get('module_id', false, 'int')) {
             return 'You must provide a "moduleId" variable with the request!';
         }
 
@@ -634,9 +634,9 @@ class CommunityInfoHelper
         // Decode received data
         try {
             if ($format == 'json') {
-                $data = \json_decode($response->body, true);
+                $data = json_decode($response->body, true);
             } elseif ($format == 'xml') {
-                $data = \simplexml_load_string($response->body);
+                $data = simplexml_load_string($response->body);
             } else {
                 $data = $response->body;
             }
