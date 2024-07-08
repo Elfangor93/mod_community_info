@@ -1,34 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension type="module" client="administrator" method="upgrade">
-	<name>mod_community_info</name>
-	<author>Joomla! Project</author>
-	<creationDate>2024-08</creationDate>
-	<copyright>(C) 2024 Open Source Matters, Inc.</copyright>
-	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
-	<authorEmail>admin@joomla.org</authorEmail>
-	<authorUrl>www.joomla.org</authorUrl>
-	<version>1.0.0</version>
-	<description>MOD_COMMUNITY_INFO_XML_DESCRIPTION</description>
-	<namespace path="src">Joomla\Module\CommunityInfo</namespace>
-	<files>
-		<folder module="mod_community_info">services</folder>
+  <name>mod_community_info</name>
+  <author>Joomla! Project</author>
+  <creationDate>2024-08</creationDate>
+  <copyright>(C) 2024 Open Source Matters, Inc.</copyright>
+  <license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+  <authorEmail>admin@joomla.org</authorEmail>
+  <authorUrl>www.joomla.org</authorUrl>
+  <version>1.0.0</version>
+  <description>MOD_COMMUNITY_INFO_XML_DESCRIPTION</description>
+  <namespace path="src">Joomla\Module\CommunityInfo</namespace>
+  <files>
+    <folder module="mod_community_info">services</folder>
     <folder>includes</folder>
     <folder>language</folder>
-		<folder>src</folder>
-		<folder>tmpl</folder>
-	</files>
-	<languages>
-		<language tag="en-GB">language/en-GB/mod_community_info.ini</language>
-		<language tag="en-GB">language/en-GB/mod_community_info.sys.ini</language>
-	</languages>
+    <folder>src</folder>
+    <folder>tmpl</folder>
+  </files>
+  <languages>
+    <language tag="en-GB">language/en-GB/mod_community_info.ini</language>
+    <language tag="en-GB">language/en-GB/mod_community_info.sys.ini</language>
+    <language tag="de-DE">language/de-DE/mod_community_info.ini</language>
+    <language tag="de-DE">language/de-DE/mod_community_info.sys.ini</language>
+  </languages>
   <media folder="media" destination="mod_community_info">
-		<filename>joomla.asset.json</filename>
-		<folder>css</folder>
-		<folder>js</folder>
-	</media>
-	<help key="Admin_Modules:_Community_Info" />
-	<config>
-		<fields name="params">
+    <filename>joomla.asset.json</filename>
+    <folder>css</folder>
+    <folder>js</folder>
+  </media>
+  <help key="Admin_Modules:_Community_Info" />
+  <config>
+    <fields name="params">
       <fieldset name="options" label="COM_MODULES_BASIC_FIELDSET_LABEL" addfieldprefix="Joomla\Module\CommunityInfo\Administrator\Field">
         <field
           name="endpoint"
@@ -72,22 +74,22 @@
           <option value="1">JYES</option>
         </field>
       </fieldset>
-			<fieldset name="advanced">
-				<field
-					name="layout"
-					type="modulelayout"
-					label="JFIELD_ALT_LAYOUT_LABEL"
-					class="form-select"
-				/>
+      <fieldset name="advanced">
+        <field
+          name="layout"
+          type="modulelayout"
+          label="JFIELD_ALT_LAYOUT_LABEL"
+          class="form-select"
+        />
 
-				<field
-					name="moduleclass_sfx"
-					type="textarea"
-					label="COM_MODULES_FIELD_MODULECLASS_SFX_LABEL"
-					rows="3"
-					validate="CssIdentifier"
-				/>
-			</fieldset>
-		</fields>
-	</config>
+        <field
+          name="moduleclass_sfx"
+          type="textarea"
+          label="COM_MODULES_FIELD_MODULECLASS_SFX_LABEL"
+          rows="3"
+          validate="CssIdentifier"
+        />
+      </fieldset>
+    </fields>
+  </config>
 </extension>
