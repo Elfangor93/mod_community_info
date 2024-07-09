@@ -632,7 +632,7 @@ class CommunityInfoHelper
         }
 
         // Decode received data
-        if($response->body) {
+        if ($response->body) {
             try {
                 if ($format == 'json') {
                     $data = json_decode($response->body, true, 512, JSON_THROW_ON_ERROR);
@@ -641,7 +641,7 @@ class CommunityInfoHelper
                     $data = simplexml_load_string($response->body);
 
                     if ($data === false) {
-                        $errors = libxml_get_errors();
+                        $errors                       = libxml_get_errors();
                         [$xml_err_code, $xml_err_msg] = self::xmlError($errors);
                         Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_FETCH_API', $target, $xml_err_code, 'Invalid XML.' . $xml_err_msg), 'warning');
                         libxml_clear_errors();
@@ -685,7 +685,7 @@ class CommunityInfoHelper
      *
      * @since   4.5.0
      */
-    protected static function xmlError($errors, $limit=1)
+    protected static function xmlError($errors, $limit = 1)
     {
         $return = '';
 
@@ -706,7 +706,7 @@ class CommunityInfoHelper
 
             $return .= trim($error->message) . " ($error->line, $error->column);";
 
-            if ($i == $limit-1) {
+            if ($i == $limit - 1) {
                 // We reached the limit
                 break;
             }
