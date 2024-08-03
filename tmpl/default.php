@@ -32,12 +32,12 @@ CommunityInfoHelper::addText();
 
 <div id="CommunityInfo<?php echo strval($module->id); ?>" class="mod-community-info px-3" data-autoloc="<?php echo $params->get('auto_location', '1'); ?>">
   <p><?php echo Text::_('MOD_COMMUNITY_INFO_JOOMLA_DESC'); ?></p>
-  <hr />
+  <hr>
   <div class="info-block contact">
     <h3><?php echo Text::_('MOD_COMMUNITY_INFO_CONTACT_TITLE'); ?></h3>
     <p><?php echo CommunityInfoHelper::replaceText(Text::_('MOD_COMMUNITY_INFO_CONTACT_TEXT'), $links); ?></p>
   </div>
-  <hr />
+  <hr>
   <div class="info-block news">
     <div class="intro-txt">
       <div>
@@ -45,7 +45,7 @@ CommunityInfoHelper::addText();
         <p><?php echo Text::_('MOD_COMMUNITY_INFO_NEWS_INTRO'); ?></p>
       </div>
       <a class="btn btn-primary btn-sm mt-1" href="<?php echo $links->get('newsletter'); ?>" target="_blank"><?php echo Text::_('MOD_COMMUNITY_INFO_NEWS_SUBSCRIBE'); ?></a>
-      <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNews<?php echo strval($module->id); ?>" aria-expanded="false" aria-controls="collapseNews"><i class="icon-arrow-down"></i></button>
+      <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNews<?php echo strval($module->id); ?>" aria-expanded="false" aria-controls="collapseNews"><span class="icon-arrow-down" aria-hidden="true"></span></button>
     </div>
     <?php if (empty($news)) : ?>
       <div id="collapseNews<?php echo strval($module->id); ?>" class="community-info-news collapse">
@@ -55,25 +55,32 @@ CommunityInfoHelper::addText();
       </div>
     <?php else : ?>
       <table id="collapseNews<?php echo strval($module->id); ?>" class="table community-info-news collapse">
+        <caption class="hidden"><?php echo Text::_('MOD_COMMUNITY_INFO_NEWS_TITLE_FEED'); ?></caption>
+        <thead class="hidden">
+          <tr>
+            <th scope="col"><?php echo Text::_('JGLOBAL_TITLE'); ?></th>
+            <th scope="col"><?php echo Text::_('JGLOBAL_PUBLISHED_DATE'); ?></th>
+          </tr>
+        </thead>
         <tbody>
           <?php foreach ($news as $n => $article) : ?>
             <tr>
-              <td scope="row"><a href="<?php echo $article->link; ?>" target="_blank"><?php echo $article->title; ?></a></td>
-              <td style="text-align: right"><span class="small"><?php echo HTMLHelper::_('date', $article->pubDate, 'M j, Y'); ?></span></td>
+              <td><a href="<?php echo $article->link; ?>" target="_blank"><?php echo $article->title; ?></a></td>
+              <td class="text-right"><span class="small"><?php echo HTMLHelper::_('date', $article->pubDate, 'M j, Y'); ?></span></td>
             </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
     <?php endif; ?>
-  </div>  
-  <hr />
+  </div>
+  <hr>
   <div class="info-block events">
     <div class="intro-txt">
       <div>
         <h3><?php echo Text::_('MOD_COMMUNITY_INFO_EVENTS_TITLE'); ?></h3>
         <p><?php echo Text::_('MOD_COMMUNITY_INFO_EVENTS_INTRO'); ?></p>
       </div>
-      <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEvents<?php echo strval($module->id); ?>" aria-expanded="false" aria-controls="collapseEvents"><i class="icon-arrow-down"></i></button>
+      <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEvents<?php echo strval($module->id); ?>" aria-expanded="false" aria-controls="collapseEvents"><span class="icon-arrow-down" aria-hidden="true"></span></button>
     </div>
     <?php if (empty($events)) : ?>
       <div id="collapseEvents<?php echo strval($module->id); ?>" class="community-info-events collapse">
@@ -83,18 +90,25 @@ CommunityInfoHelper::addText();
       </div>
     <?php else : ?>
       <table id="collapseEvents<?php echo strval($module->id); ?>" class="table table-sm community-info-events collapse">
-        <tbody>        
+        <caption class="hidden"><?php echo Text::_('MOD_COMMUNITY_INFO_EVENTS_TITLE_FEED'); ?></caption>
+        <thead class="hidden">
+          <tr>
+            <th scope="col"><?php echo Text::_('JGLOBAL_TITLE'); ?></th>
+            <th scope="col"><?php echo Text::_('JDATE'); ?></th>
+          </tr>
+        </thead>
+        <tbody>
           <?php foreach ($events as $e => $event) : ?>
             <tr>
-              <td scope="row"><strong><a href="<?php echo $event->url; ?>" target="_blank"><?php echo $event->title; ?></a></strong><br /><span class="small"><?php echo $event->location; ?></span></td>
-              <td style="text-align: right"><span class="small"><?php echo HTMLHelper::_('date', $event->start, 'D, M j, Y'); ?></span><br /><span class="small"><?php echo HTMLHelper::_('date', $event->start, 'H:i T'); ?></span></td>
+              <td><strong><a href="<?php echo $event->url; ?>" target="_blank"><?php echo $event->title; ?></a></strong><br><span class="small"><?php echo $event->location; ?></span></td>
+              <td class="text-right"><span class="small"><?php echo HTMLHelper::_('date', $event->start, 'D, M j, Y'); ?></span><br><span class="small"><?php echo HTMLHelper::_('date', $event->start, 'H:i T'); ?></span></td>
             </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
     <?php endif; ?>
   </div>
-  <hr />
+  <hr>
   <div class="info-block contribute">
     <a class="no-link" href="https://magazine.joomla.org/all-issues/june-2024/holopin-is-ready-to-launch,-claim-your-digital-badge" target="_blank"><img class="float-right" src="<?php echo Uri::root(true) . '/media/mod_community_info/images/holopin-badge-board.png'; ?>" alt="joomla volunteer badge"></a>
     <h3><?php echo Text::_('MOD_COMMUNITY_INFO_CONTRIBUTE_TITLE'); ?></h3>
@@ -106,7 +120,7 @@ CommunityInfoHelper::addText();
 <template id="template-location-picker">
   <div class="select-location">
     <a href="#" data-modal-id="location-modal<?php echo strval($module->id); ?>" data-geolocation="<?php echo CommunityInfoHelper::getLocation($params, 'geolocation'); ?>">
-      <i class="icon-location"></i>
+      <span class="icon-location" aria-hidden="true"></span>
       <?php echo Text::_('MOD_COMMUNITY_INFO_CHOOSE_LOCATION'); ?>
     </a><span> (<?php echo Text::_('JCURRENT'); ?>: <?php echo CommunityInfoHelper::getLocation($params, 'label'); ?>)</span>
   </div>

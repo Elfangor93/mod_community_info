@@ -12,6 +12,7 @@ namespace Joomla\Module\CommunityInfo\Administrator\Helper;
 
 use Joomla\CMS\Access\Access;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Feed\FeedFactory;
 use Joomla\CMS\Http\HttpFactory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Session\Session;
@@ -80,7 +81,7 @@ class CommunityInfoHelper
 
         // Load links from endpoint
         $vars = ['location' => self::getLocation($params, 'geolocation')];
-        $url  = $params->get('endpoint', 'http://www.example.com');
+        $url  = $params->get('endpoint', 'https://test.joomla.spuur.ch/joomla-community-api/links.php');
 
         if ($api_link_sets = self::fetchAPI($url, $vars)) {
             // Sort the returned data based on level with descending order
@@ -175,27 +176,27 @@ class CommunityInfoHelper
     public static function getNewsFeed(string $url, int $num = 3)
     {
         // Load rss xml from endpoint
-        $vars  = [];
         $items = [];
 
-        if ($rss  = self::fetchAPI($url, $vars, 'xml')) {
-            foreach ($rss->channel->item as $item) {
-                $obj              = new \stdClass();
-                $obj->title       = (string) $item->title;
-                $obj->link        = (string) $item->link;
-                $obj->guid        = (string) $item->guid;
-                $obj->description = (string) $item->description;
-                $obj->category    = (string) $item->category;
-                $obj->pubDate     = (string) $item->pubDate;
-                $items[]          = $obj;
-            }
-
-            // Sort the items by pubDate in descending order
-            usort($items, fn ($a, $b) => strtotime($b->pubDate) <=> strtotime($a->pubDate));
-
-            // Select n most recent items
-            $items = \array_slice($items, 0, $num);
+        try {
+            $feed   = new FeedFactory();
+            $rssDoc = $feed->getFeed($url);
+        } catch (\InvalidArgumentException $e) {
+            Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_FETCH_API', $url, $e->getCode(), $e), 'warning');
+        } catch (\RuntimeException $e) {
+            Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_FETCH_API', $url, $e->getCode(), $e), 'warning');
         }
+
+        if (empty($rssDoc)) {
+            Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_FETCH_API', $url, 200, 'Parsing error.'), 'warning');
+        }
+
+        // Get the newsest feed entries
+        foreach ($variable as $key => $value) {
+            array_push();
+        }
+        offsetGet
+        $items = \array_slice($rssDoc->entries, 0, $num);
 
         return $items;
     }
