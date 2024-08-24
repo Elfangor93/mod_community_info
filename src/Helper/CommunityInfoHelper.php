@@ -10,15 +10,15 @@
 
 namespace Joomla\Module\CommunityInfo\Administrator\Helper;
 
-use Joomla\CMS\Access\Access;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Feed\FeedFactory;
+use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Http\HttpFactory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Session\Session;
-use Joomla\CMS\Table\Table;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
+use Joomla\Filter\OutputFilter;
 use Joomla\Registry\Registry;
 
 // phpcs:disable PSR1.Files.SideEffects
@@ -45,6 +45,26 @@ class CommunityInfoHelper
      * @var integer
      */
     protected static $moduleId = null;
+
+    /**
+     * Fallback community info
+     *
+     * @var array
+     */
+    public const DEFAULT_INFO = [
+        "name"        => "joomla.org",
+        "type"        => "default",
+        "level"       => "0",
+        "jug"         => "https://community.joomla.org/user-groups",
+        "forum"       => "https://forum.joomla.org",
+        "jday"        => "https://community.joomla.org/events?filter[calendars][1]=97",
+        "messanger"   => "https://joomlacommunity.cloud.mattermost.com",
+        "vportal"     => "https://volunteers.joomla.org",
+        "geolocation" => "51.5000,0.0000",
+        "news_feed"   => "https://community.joomla.org/blogs?format=feed&type=rss",
+        "events_feed" => "https://djumla.dev/joomla-community-api/events.php?url=https://community.joomla.org/events\?format=feed&type=ical",
+        "newsletter"  => "https://community.joomla.org/general-newsletter",
+    ];
 
     /**
      * Initialize the helper variables
@@ -76,8 +96,7 @@ class CommunityInfoHelper
         self::setParams($params);
 
         // Load the local default values
-        require_once JPATH_ADMINISTRATOR . '/modules/mod_community_info/includes/default_links.php';
-        $links = new Registry($defaultLinksArray);
+        $links = new Registry(self::DEFAULT_INFO);
 
         // Load links from endpoint
         $vars = ['location' => self::getLocation($params, 'geolocation')];
@@ -128,30 +147,16 @@ class CommunityInfoHelper
         self::setParams($params);
 
         $location = null;
+        $matches  = [];
 
-        // Get the list of countries
-        require JPATH_ADMINISTRATOR . '/modules/mod_community_info/includes/country_list.php';
-
-        $matches = [];
-
-        // Startegy 1: Location stored in parameters
+        // Take location stored in module parameters
         if (\is_null($location) && !empty($params->get('location', 0))) {
-            if (key_exists($params->get('location'), $countryListArray)) {
-                // Location based on language code
-                $location = $countryListArray[$params->get('location')][$key];
-            } else {
-                $location = $params->get('location');
-            }
+            $location = $params->get('location');
         }
 
-        // Strategy 2: Location based on current language
-        if (\is_null($location) && key_exists($lang, $countryListArray)) {
-            $location = $countryListArray[$lang][$key];
-        }
-
-        // Strategy 3: Fallback location
+        // Fallback location: London
         if (\is_null($location)) {
-            $location = $countryListArray[$params->get('fallback-location', 'en-GB')][$key];
+            $location = '51.5000,0.0000';
         }
 
         if ($key == 'label' && preg_match('/[-]*\d{1,4}\.\d{1,4}\,[ ,-]*\d{1,4}\.\d{1,4}/m', $location, $matches)) {
@@ -179,24 +184,38 @@ class CommunityInfoHelper
         $items = [];
 
         try {
-            $feed   = new FeedFactory();
-            $rssDoc = $feed->getFeed($url);
-        } catch (\InvalidArgumentException $e) {
-            Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_FETCH_API', $url, $e->getCode(), $e), 'warning');
-        } catch (\RuntimeException $e) {
-            Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_FETCH_API', $url, $e->getCode(), $e), 'warning');
+            $ff   = new FeedFactory();
+            $feed = $ff->getFeed($url);
+        } catch (\Exception $e) {
+            return $items;
         }
 
-        if (empty($rssDoc)) {
+        if (empty($feed)) {
             Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_FETCH_API', $url, 200, 'Parsing error.'), 'warning');
+
+            return $items;
         }
 
-        // Get the newsest feed entries
-        foreach ($variable as $key => $value) {
-            array_push();
+        // Collect the newsfeed entries
+        for ($i = 0; $i < $num; $i++) {
+            if (!$feed->offsetExists($i)) {
+                break;
+            }
+
+            $obj           = new \stdClass();
+            $obj->title    = trim($feed[$i]->title);
+            $obj->link     = $feed[$i]->uri || !$feed[$i]->isPermaLink ? trim($feed[$i]->uri) : trim($feed[$i]->guid);
+            $obj->guid     = trim($feed[$i]->guid);
+            $obj->text     = $feed[$i]->content !== '' ? trim($feed[$i]->content) : '';
+            $obj->category = (string) trim($feed->title);
+            $obj->pubDate  = $feed[$i]->publishedDate;
+
+            // Strip unneeded objects
+            $obj->text = OutputFilter::stripImages($obj->text);
+            $obj->text = str_replace('&apos;', "'", $obj->text);
+
+            $items[] = $obj;
         }
-        offsetGet
-        $items = \array_slice($rssDoc->entries, 0, $num);
 
         return $items;
     }
@@ -217,7 +236,7 @@ class CommunityInfoHelper
         $vars           = [];
         $upcomingEvents = [];
 
-        if ($events  = self::fetchAPI($url, $vars, 'json')) {
+        if ($events  = self::fetchAPI($url, $vars)) {
             // Sort the array by the 'start' property to ensure events are in chronological order
             usort($events, fn ($a, $b) => strtotime($a['start']) <=> strtotime($b['start']));
 
@@ -249,13 +268,20 @@ class CommunityInfoHelper
             foreach ($matches as $match) {
                 if ($links->exists(strtolower($match[1]))) {
                     // replace with link
-                    $output = '<a href="' . $links->get(strtolower($match[1])) . '" target="_blank">' . Text::_('MOD_COMMUNITY_INFO_TERMS_' . strtoupper($match[1])) . '</a>';
+                    $output = HTMLHelper::link(
+                        $links->get(strtolower($match[1])),
+                        Text::_('MOD_COMMUNITY_INFO_TERMS_' . strtoupper($match[1])),
+                        [
+                            'target' => '_blank',
+                            'rel'    => 'noopener nofollow',
+                        ]
+                    );
                 } else {
                     // replace without link
                     $output = Text::_('MOD_COMMUNITY_INFO_TERMS_' . strtoupper($match[1]));
                 }
 
-                $text   = str_replace($match[0], $output, $text);
+                $text = str_replace($match[0], $output, $text);
             }
         }
 
@@ -504,76 +530,6 @@ class CommunityInfoHelper
     }
 
     /**
-     * Returns the Super Users email information
-     *
-     * @return  array  The list of Super User emails
-     *
-     * @since   4.5.0
-     */
-    protected static function getSuperUserMails()
-    {
-        $db = Factory::getContainer()->get(DatabaseInterface::class);
-
-        // Get a list of groups which have Super User privileges
-        $ret = ['info@example.org'];
-
-        try {
-            $rootId    = Table::getInstance('Asset')->getRootId();
-            $rules     = Access::getAssetRules($rootId)->getData();
-            $rawGroups = $rules['core.admin']->getData();
-            $groups    = [];
-
-            if (empty($rawGroups)) {
-                return $ret;
-            }
-
-            foreach ($rawGroups as $g => $enabled) {
-                if ($enabled) {
-                    $groups[] = $g;
-                }
-            }
-
-            if (empty($groups)) {
-                return $ret;
-            }
-        } catch (\Exception $exc) {
-            return $ret;
-        }
-
-        // Get the user IDs of users belonging to the SA groups
-        try {
-            $query = $db->getQuery(true)
-              ->select($db->quoteName('user_id'))
-              ->from($db->quoteName('#__user_usergroup_map'))
-              ->whereIn($db->quoteName('group_id'), $groups);
-
-            $db->setQuery($query);
-            $userIDs = $db->loadColumn(0);
-
-            if (empty($userIDs)) {
-                return $ret;
-            }
-        } catch (\Exception $exc) {
-            return $ret;
-        }
-
-        // Get the user information for the Super Administrator users
-        try {
-            $query = $db->getQuery(true)
-              ->select('email')
-              ->from($db->quoteName('#__users'))
-              ->whereIn($db->quoteName('id'), $userIDs);
-
-            $db->setQuery($query);
-            $ret = $db->loadColumn();
-        } catch (\Exception $exc) {
-            return $ret;
-        }
-
-        return $ret;
-    }
-
-    /**
      * Fix a geolocation string
      *
      * @param   string   $geolocation   Geolocation string
@@ -596,25 +552,23 @@ class CommunityInfoHelper
     }
 
     /**
-     * Fetches data from endpoints
+     * Fetches data from endpoints providing json respond data
      *
      * @param   string   $url         Request url
      * @param   array    $variables   Request variables
-     * @param   string   $format      The expected format of the returned content
      *
      * @return  mixed    The fetched content on success, false otherwise
      *
      * @since   4.5.0
      */
-    protected static function fetchAPI(string $url, array $variables, string $format = 'json')
+    protected static function fetchAPI(string $url, array $variables)
     {
         $domain    = str_replace(Uri::base(true), '', Uri::base());
-        $email     = self::getSuperUserMails()[0];
         $target    = $url . '?' . http_build_query($variables);
 
         // Create options
         $options = new Registry();
-        $options->set('userAgent', $email);
+        $options->set('userAgent', (new \Joomla\CMS\Version())->getUserAgent('Joomla', true, false));
         $options->set('headers', ['Referer' => trim($domain)]);
 
         // Fetch address from joomla.org
@@ -633,27 +587,12 @@ class CommunityInfoHelper
         }
 
         // Decode received data
-        if ($response->body) {
-            try {
-                if ($format == 'json') {
-                    $data = json_decode($response->body, true, 512, JSON_THROW_ON_ERROR);
-                } elseif ($format == 'xml') {
-                    libxml_use_internal_errors(true);
-                    $data = simplexml_load_string($response->body);
+        try {
+            $data = json_decode($response->body, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\Exception $e) {
+            Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_FETCH_API', $target, 200, $e->getMessage()), 'warning');
 
-                    if ($data === false) {
-                        $errors                       = libxml_get_errors();
-                        [$xml_err_code, $xml_err_msg] = self::xmlError($errors);
-                        Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_FETCH_API', $target, $xml_err_code, 'Invalid XML.' . $xml_err_msg), 'warning');
-                        libxml_clear_errors();
-                    }
-                } else {
-                    $data = $response->body;
-                }
-            } catch (\Exception $e) {
-                $data = false;
-                Factory::getApplication()->enqueueMessage(Text::sprintf('MOD_COMMUNITY_ERROR_FETCH_API', $target, 200, $e->getMessage()), 'warning');
-            }
+            return false;
         }
 
         return $data;

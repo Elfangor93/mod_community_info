@@ -31,7 +31,7 @@ return new class () implements ServiceProviderInterface {
      *
      * @since   4.5.0
      */
-    public function register(Container $container)
+    public function register(Container $container): void
     {
         $container->registerServiceProvider(new ModuleDispatcherFactory('\\Joomla\\Module\\CommunityInfo'));
         $container->registerServiceProvider(new HelperFactory('\\Joomla\\Module\\CommunityInfo\\Administrator\\Helper'));
