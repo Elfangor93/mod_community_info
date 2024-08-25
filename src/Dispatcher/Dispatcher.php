@@ -81,12 +81,14 @@ class Dispatcher extends AbstractModuleDispatcher implements HelperFactoryAwareI
 
         // Fetch news feed
         if ($data['links']->exists('news_feed')) {
-            $data['news'] = $helper->getNewsFeed($data['links']->get('news_feed'), 3);
+            $data['news']      = $helper->getNewsFeed();
+            $data['news_time'] = Factory::getApplication()->getUserState('mod_community_info.news.datetime', '');
         }
 
         // Fetch evets feed
         if ($data['links']->exists('events_feed')) {
-            $data['events'] = $helper->getEventsFeed($data['links']->get('events_feed'), 3);
+            $data['events']    = $helper->getEventsFeed();
+            $data['news_time'] = Factory::getApplication()->getUserState('mod_community_info.events.datetime', '');
         }
 
         return $data;
