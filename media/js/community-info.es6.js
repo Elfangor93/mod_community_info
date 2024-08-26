@@ -15,6 +15,27 @@ const sprintf = function (text, ...args) {
 };
 
 /**
+ * Fix a geolocation string
+ *
+ * @param   {String}   geolocation   Geolocation string
+ *
+ * @return  {String}   Fixed string
+ */
+const fixGeolocation = function (geolocation) {
+  // Split the input string into latitude and longitude
+  const coorArr = geolocation.split(',', 2);
+
+  // Split latitude and longitude into their integer and decimal parts
+  const latArr = coorArr[0].split('.', 2);
+  const lngArr = coorArr[1].split('.', 2);
+
+  // Trim and format the geolocation to the form 51.5000,0.0000
+  const fixedGeolocation = latArr[0].trim() + '.' + latArr[1].trim().substring(0, 4) + ',' + lngArr[0].trim() + '.' + lngArr[1].trim().substring(0, 4);
+
+  return fixedGeolocation;
+}
+
+/**
  * Get current position of device
  *
  * @returns {Promise<String>}   A promise that resolves to the location string (e.g., "51.5000,0.0000")
@@ -225,13 +246,10 @@ const ajaxTask = async function (moduleId, method, requestVars, msgString) {
   const formData = new FormData();
   formData.append('module_id', moduleId);
 
-  console.log(requestVars);
-
   // Append request variables as form data
   Object.entries(requestVars).forEach(([key, value]) => {
-    console.log(`Key: ${key}, Value: ${value}`);
     formData.append(key, value);
-  });  
+  });
 
   // Set request parameters
   const parameters = {
@@ -362,6 +380,123 @@ const openModal = function (moduleId, modalId) {
 };
 
 /**
+ * Checks if loaded data is still valid
+ *
+ * @param   {String}   datetime   Timestamp of the cached data
+ * @param   {Integer}  moduleId   ID of the module
+ * 
+ * @returns {Bool}     True if cached data is still valid, false otherwise
+ */
+const checkCache = function (datetime, moduleId) {
+  // Convert to JavaScript Date object
+  const date = new Date(datetime.replace(' ', 'T'));
+
+  // Get cachtime param of module
+  const cachetime = parseInt(document.getElementById('CommunityInfo'+moduleId).getAttribute('data-cachetime'));
+
+  // Calculate the cachetime limit
+  const now = new Date();
+  const limit = new Date(now.getTime() - cachetime * 60 * 60 * 1000);
+
+  if (date < limit) {
+    // Datetime is older than allowed cachetime
+    return false;
+  } else {
+    // Datetime is within the allowed cachetime
+    return true;
+  }
+}
+
+/**
+ * Fetches new content and updates it in the module
+ *
+ * @param {Integer}  moduleId      ID of the module
+ * @param {Bool}     forceUpdate   True to force an update of the content
+ */
+const updateContent = async function (moduleId, forceUpdate=false) {
+
+  let update = false;
+  const links_time = document.getElementById('contactTxt'+moduleId).getAttribute('data-fetch-time');
+
+  if(forceUpdate || !checkCache(links_time, moduleId)) {
+    // Links are outdated and need update
+    try {
+      var community_links = await ajaxTask(moduleId, 'getLinks', {}, 'FETCH_LINKS');
+      console.log('Fetched community links:', community_links);
+
+      // Get current link texts
+      let contactTxt = document.getElementById('contactTxt'+moduleId);
+      let contributeTxt = document.getElementById('contributeTxt'+moduleId);
+
+      if (community_links && contactTxt !== null) {
+        // Exchange contact link text
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = community_links.html.contact;
+        contactTxt.parentNode.replaceChild(tempDiv.firstChild, contactTxt);
+      }
+
+      if (community_links && contributeTxt !== null) {
+        // Exchange contribute link text
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = community_links.html.contribute;
+        const contributeTxtParent = contributeTxt.parentNode;
+        contributeTxtParent.replaceChild(tempDiv.firstChild, contributeTxt);
+        contributeTxtParent.appendChild(tempDiv.lastChild);
+      }
+
+      // Links successfully updated
+      update = true;      
+    } catch (error) {
+      console.error('Error fetching community links:', error);
+    }
+  }
+
+  const news_time = document.getElementById('collapseNews'+moduleId).getAttribute('data-fetch-time');
+
+  if(update || !checkCache(news_time, moduleId)) {
+    // Fetch news feed
+    try {
+      var community_news = await ajaxTask(moduleId, 'getNewsFeed', {'url': community_links.links.news_feed}, 'FETCH_NEWS');
+      console.log('Fetched news feed:', community_news);
+    
+      // Get current news feed table
+      let newsFeetTable = document.getElementById('collapseNews'+moduleId);
+
+      if (community_news && newsFeetTable !== null) {
+        // Exchange news feed table
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = community_news.html;
+        newsFeetTable.parentNode.replaceChild(tempDiv.firstChild, newsFeetTable);
+      }
+    } catch (error) {
+      console.error('Error fetching news feed:', error);
+    }
+  }
+  
+  const events_time = document.getElementById('collapseEvents'+moduleId).getAttribute('data-fetch-time');
+
+  if(update || !checkCache(events_time, moduleId)) {
+    // Fetch events feed
+    try {
+      var community_events = await ajaxTask(moduleId, 'getEventsFeed', {'url': community_links.links.events_feed}, 'FETCH_EVENTS');
+      console.log('Fetched events feed:', community_events);
+
+      // Get current events feed table
+      let eventsFeetTable = document.getElementById('collapseEvents'+moduleId);
+
+      if (community_events && eventsFeetTable !== null) {
+        // Exchange events feed table
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = community_events.html;
+        eventsFeetTable.parentNode.replaceChild(tempDiv.firstChild, eventsFeetTable);
+      }
+    } catch (error) {
+      console.error('Error fetching events feed:', error);
+    }
+  }
+}
+
+/**
  * Initialize all com_community_info modules
  *
  */
@@ -403,83 +538,32 @@ const iniModules = async function () {
     let autoLocation = moduleBody.getAttribute('data-autoloc');
     autoLocation = parseInt(autoLocation, 10);
 
+    // Get old location from html
+    let locChanged = false;
+    let oldLocation = document.querySelectorAll('[data-modal-id="location-modal'+moduleId+'"]')[0].getAttribute('data-geolocation');
+    oldLocation = fixGeolocation(oldLocation);
+
     // Get auto location
     if (autoLocation === 1 && moduleId > 0) {
       try {
-        const location = await getCurrentLocation();
-        console.log('Current Location:', location);
+        let location = await getCurrentLocation();
+        location = fixGeolocation(location);
 
-        const response = await ajaxTask(moduleId, 'setLocation', {'current_location': location}, 'SAVE_LOCATION');
-        //const response = await ajaxLocation(location, moduleId, 'setLocation');
-        console.log('Ajax Response:', Joomla.Text._(response));
+        if(oldLocation != location) {
+          // Location has changed
+          locChanged = true;
+          const response = await ajaxTask(moduleId, 'setLocation', {'current_location': location}, 'SAVE_LOCATION');
+          console.log('Update location:', Joomla.Text._(response));
+        } else {
+          console.log('Location is up to date.');
+        }
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error during autolocation:', error);
       }
     }
 
-    // Fetch links
-    try {
-      var community_links = await ajaxTask(moduleId, 'getLinks', {}, 'FETCH_LINKS');
-      console.log('Fetched community links:', community_links);
-    } catch (error) {
-      console.error('Error:', error);
-    }
-
-    // Get current link texts
-    let contactTxt = document.getElementById('contactTxt'+moduleId);
-    let contributeTxt = document.getElementById('contributeTxt'+moduleId);
-
-    if (community_links && contactTxt !== null) {
-      // Exchange contact link text
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = community_links.html.contact;
-      contactTxt.parentNode.replaceChild(tempDiv.firstChild, contactTxt);
-    }
-
-    if (community_links && contributeTxt !== null) {
-      // Exchange contribute link text
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = community_links.html.contribute;
-      const contributeTxtParent = contributeTxt.parentNode;
-      contributeTxtParent.replaceChild(tempDiv.firstChild, contributeTxt);
-      contributeTxtParent.appendChild(tempDiv.lastChild);
-    }
-
-    // Fetch news feed
-    try {
-      var community_news = await ajaxTask(moduleId, 'getNewsFeed', {'url': community_links.links.news_feed}, 'FETCH_NEWS');
-      console.log('Fetched news feed:', community_news);
-    } catch (error) {
-      console.error('Error:', error);
-    }
-    
-    // Get current news feed table
-    let newsFeetTable = document.getElementById('collapseNews'+moduleId);
-
-    if (community_news && newsFeetTable !== null) {
-      // Exchange news feed table
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = community_news.html;
-      newsFeetTable.parentNode.replaceChild(tempDiv.firstChild, newsFeetTable);
-    }
- 
-    // Fetch events feed
-    try {
-      var community_events = await ajaxTask(moduleId, 'getEventsFeed', {'url': community_links.links.events_feed}, 'FETCH_EVENTS');
-      console.log('Fetched events feed:', community_events);
-    } catch (error) {
-      console.error('Error:', error);
-    }
-    
-    // Get current events feed table
-    let eventsFeetTable = document.getElementById('collapseEvents'+moduleId);
-
-    if (community_events && eventsFeetTable !== null) {
-      // Exchange events feed table
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = community_events.html;
-      eventsFeetTable.parentNode.replaceChild(tempDiv.firstChild, eventsFeetTable);
-    }
+    // Update module content
+    updateContent(moduleId, locChanged);
   }));
 };
 

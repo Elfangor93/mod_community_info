@@ -78,17 +78,18 @@ class Dispatcher extends AbstractModuleDispatcher implements HelperFactoryAwareI
         $data['currentLoc']       = $helper->getLocation('geolocation');
         $data['currentLocLabel']  = $helper->getLocation('label');
         $data['currentLocArrary'] = explode(',', $data['currentLoc'], 2);
+        $data['links_time']       = Factory::getApplication()->getUserState('mod_community_info.news_time', '');
 
         // Fetch news feed
         if ($data['links']->exists('news_feed')) {
             $data['news']      = $helper->getNewsFeed();
-            $data['news_time'] = Factory::getApplication()->getUserState('mod_community_info.news.datetime', '');
+            $data['news_time'] = Factory::getApplication()->getUserState('mod_community_info.news_time', '');
         }
 
         // Fetch evets feed
         if ($data['links']->exists('events_feed')) {
             $data['events']    = $helper->getEventsFeed();
-            $data['news_time'] = Factory::getApplication()->getUserState('mod_community_info.events.datetime', '');
+            $data['events_time'] = Factory::getApplication()->getUserState('mod_community_info.events_time', '');
         }
 
         return $data;

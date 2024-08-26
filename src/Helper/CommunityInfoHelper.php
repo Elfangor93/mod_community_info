@@ -343,6 +343,7 @@ class CommunityInfoHelper
 
         // Set links to Session
         Factory::getApplication()->setUserState('mod_community_info.links', $links);
+        Factory::getApplication()->setUserState('mod_community_info.links_time', date('Y-m-d H:i:s'));
 
         // Create contact text
         $contact_html = '<p>' . CommunityInfoHelper::replaceText(Text::_('MOD_COMMUNITY_INFO_CONTACT_TEXT'), $links) . '</p>';

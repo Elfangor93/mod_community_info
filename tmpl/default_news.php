@@ -22,7 +22,7 @@ if(!isset($module) && isset($displayData)) {
 
 ?>
 
-<table id="collapseNews<?php echo strval($module->id); ?>" class="table community-info-news collapse" data-fetch-time="<?php echo $news_time; ?>" >
+<table id="collapseNews<?php echo strval($module->id); ?>" class="table community-info-news collapse" data-fetch-time="<?php echo $news_time; ?>">
   <caption class="hidden"><?php echo Text::_('MOD_COMMUNITY_INFO_NEWS_TITLE_FEED'); ?></caption>
   <thead class="hidden">
     <tr>

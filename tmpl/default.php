@@ -31,14 +31,14 @@ $currentURL   = Uri::getInstance()->toString();
 CommunityInfoHelper::addText();
 ?>
 
-<div id="CommunityInfo<?php echo strval($module->id); ?>" class="mod-community-info px-3" data-autoloc="<?php echo $params->get('auto_location', '1'); ?>">
+<div id="CommunityInfo<?php echo strval($module->id); ?>" class="mod-community-info px-3" data-autoloc="<?php echo $params->get('auto_location', '1'); ?>" data-cachetime="<?php echo $params->get('cache_time', '3'); ?>">
   <p><?php echo Text::_('MOD_COMMUNITY_INFO_JOOMLA_DESC'); ?></p>
   <hr>
   <div class="info-block contact">
     <h3><?php echo Text::_('MOD_COMMUNITY_INFO_CONTACT_TITLE'); ?></h3>
-    <div id="contactTxt<?php echo strval($module->id); ?>">
+    <div id="contactTxt<?php echo strval($module->id); ?>" data-fetch-time="<?php echo $links_time; ?>">
       <p><?php echo CommunityInfoHelper::replaceText(Text::_('MOD_COMMUNITY_INFO_CONTACT_TEXT'), $links); ?></p>
-    </div>    
+    </div>
   </div>
   <hr>
   <div class="info-block news">
