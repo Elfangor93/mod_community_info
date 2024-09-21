@@ -30,10 +30,10 @@ const fixGeolocation = function (geolocation) {
   const lngArr = coorArr[1].split('.', 2);
 
   // Trim and format the geolocation to the form 51.5000,0.0000
-  const fixedGeolocation = latArr[0].trim() + '.' + latArr[1].trim().substring(0, 4) + ',' + lngArr[0].trim() + '.' + lngArr[1].trim().substring(0, 4);
+  const fixedGeolocation = `${latArr[0].trim()}.${latArr[1].trim().substring(0, 4)},${lngArr[0].trim()}.${lngArr[1].trim().substring(0, 4)}`;
 
   return fixedGeolocation;
-}
+};
 
 /**
  * Get current position of device
@@ -104,6 +104,108 @@ const locationSelectChange = function (event, moduleId) {
 };
 
 /**
+ * Perform an ajax request to the helper method via com_ajax
+ *
+ * @param   {Interger} moduleId      ID of the current module
+ * @param   {String}   method        Name of the target method in the module helper class
+ * @param   {Object}   requestVars   Object with an entiry for each request variable to be set
+ * @param   {String}   msgString     Message string to be appended tp MOD_COMMUNITY_ERROR_ for error output
+ *
+ * @returns {Object} Result object
+ *          {success: true, status: 200, message: '', messages: {}, data: {}}
+ */
+const ajaxTask = async function (moduleId, method, requestVars, msgString) {
+  // Create form data
+  const formData = new FormData();
+  formData.append('module_id', moduleId);
+
+  // Append request variables as form data
+  Object.entries(requestVars).forEach(([key, value]) => {
+    formData.append(key, value);
+  });
+
+  // Set request parameters
+  const parameters = {
+    method: 'POST',
+    mode: 'same-origin',
+    cache: 'default',
+    redirect: 'follow',
+    referrerPolicy: 'no-referrer-when-downgrade',
+    body: formData,
+    enctype: 'multipart/form-data',
+  };
+
+  // Set the URL
+  const url = `index.php?option=com_ajax&module=community_info&method=${method}&format=json`;
+
+  // Perform the fetch request
+  const response = await fetch(url, parameters);
+  const txt = await response.text();
+
+  // Initialize data
+  let data = null;
+
+  if (!response.ok) {
+    // Catch network error
+    const message = Joomla.Text._(`MOD_COMMUNITY_ERROR_${msgString}`);
+    Joomla.renderMessages({ error: [`${message}`] });
+
+    return data;
+  }
+
+  if (txt.startsWith('{"success"')) {
+    // Response is of type json --> everything fine
+    const res = JSON.parse(txt);
+    try {
+      data = JSON.parse(res.data);
+    } catch (e) {
+      // no need to parse a json string.
+      data = res.data;
+    }
+  } else if (txt.includes('Fatal error')) {
+    // PHP fatal error occurred
+    const message = Joomla.Text._(`MOD_COMMUNITY_ERROR_${msgString}`);
+    Joomla.renderMessages({ error: [`${message}`] });
+  } else {
+    // Response is not of type json --> probably some php warnings/notices
+    const split = txt.split('\n{"');
+    const temp = JSON.parse(`{"${split[1]}`);
+    data = JSON.parse(temp.data);
+
+    const message = Joomla.Text._(`MOD_COMMUNITY_ERROR_${msgString}`);
+
+    if (Joomla.getOptions('mod_community_info').debug === 1) {
+      Joomla.renderMessages({ error: [`${message}`, `Message: ${split[0]}`, `Messages: ${temp.messages}`, `Data: ${data}`] });
+    } else {
+      Joomla.renderMessages({ error: [`${message}`] });
+    }
+  }
+
+  return data;
+};
+
+/**
+ * Logging to the Joomla logger
+ *
+ * @param   {String}   msg      The message to be logged
+ * @param   {String}   prio     The logging priority (error, warning, notice, info, debug)
+ * @param   {Boolean}  always   True to log anyway, False only when debug is enabled
+ */
+const addLog = async function (msg, prio, always = false) {
+  if (always || Joomla.getOptions('mod_community_info').debug === 1) {
+    try {
+      const result = await ajaxTask(1, 'addLog', { message: msg, priority: prio }, 'ADD_LOG');
+
+      if (result && result !== 'True') {
+        Joomla.renderMessages({ error: [result] });
+      }
+    } catch (error) {
+      Joomla.renderMessages({ error: ['Problem reaching com_ajax.'] });
+    }
+  }
+};
+
+/**
  * Fetches data from an endpoint
  *
  * @param   {String}   url        Request url
@@ -139,7 +241,7 @@ const fetchAPI = async function (url, variables = {}, format = 'json') {
     // Catch network error
     const message = Joomla.Text._('MOD_COMMUNITY_ERROR_FETCH_API');
     Joomla.renderMessages({ error: [sprintf(message, targetUrl, response.status, response.statusText)] });
-    console.log(`mod_community_info: fetchAPI request failed. Status Code: ${response.status}. Message: ${response.statusText}`);
+    addLog(`fetchAPI request failed, Status Code: ${response.status}, Message: ${response.statusText}`, 'error', true);
 
     return data;
   }
@@ -172,7 +274,7 @@ const fetchAPI = async function (url, variables = {}, format = 'json') {
     // Parsing error
     const message = Joomla.Text._('MOD_COMMUNITY_ERROR_FETCH_API');
     Joomla.renderMessages({ error: [sprintf(message, targetUrl, '-', errorcode)] });
-    console.log(`mod_community_info: fetchAPI request failed. Status Code: -. Message: ${errorcode}`);
+    addLog(`fetchAPI request failed, Status Code: -, Message: ${errorcode}`, 'error', true);
 
     return null;
   }
@@ -228,95 +330,6 @@ const searchLocation = async function (moduleId) {
     // Deactivate button
     document.getElementById(`btn-saveLoc${moduleId}`).disabled = true;
   }
-};
-
-/**
- * Perform an ajax request to the helper method via com_ajax
- *
- * @param   {Interger} moduleId      ID of the current module
- * @param   {String}   method        Name of the target method in the module helper class
- * @param   {Object}   requestVars   Object with an entiry for each request variable to be set
- * @param   {String}   msgString     Message string to be appended tp MOD_COMMUNITY_ERROR_ for error output
- *
- * @returns {Object} Result object
- *          {success: true, status: 200, message: '', messages: {}, data: {}}
- */
-const ajaxTask = async function (moduleId, method, requestVars, msgString) {
-  // Create form data
-  const formData = new FormData();
-  formData.append('module_id', moduleId);
-
-  // Append request variables as form data
-  Object.entries(requestVars).forEach(([key, value]) => {
-    formData.append(key, value);
-  });
-
-  // Set request parameters
-  const parameters = {
-    method: 'POST',
-    mode: 'same-origin',
-    cache: 'default',
-    redirect: 'follow',
-    referrerPolicy: 'no-referrer-when-downgrade',
-    body: formData,
-    enctype: 'multipart/form-data',
-  };
-
-  // Set the URL
-  const url = `index.php?option=com_ajax&module=community_info&method=${method}&format=json`;
-
-  // Perform the fetch request
-  const response = await fetch(url, parameters);
-  const txt = await response.text();
-
-  // Initialize data
-  let data = null;
-
-  if (!response.ok) {
-    // Catch network error
-    const message = Joomla.Text._(`MOD_COMMUNITY_ERROR_${msgString}`);
-    const message2 = Joomla.Text._('MOD_COMMUNITY_ERROR_BROWSER_CONSOLE');
-    Joomla.renderMessages({ error: [`${message} ${sprintf(message2, 'Network error')}`] });
-
-    console.log(`mod_community_info: ${method} request failed.`);
-    console.log(`Status Code: ${response.status}. Message: ${response.statusText}`);
-
-    return data;
-  }
-
-  if (txt.startsWith('{"success"')) {
-    // Response is of type json --> everything fine
-    const res = JSON.parse(txt);
-    try {
-      data = JSON.parse(res.data);
-    } catch (e) {
-      // no need to parse a json string.
-      data = res.data;
-    }
-  } else if (txt.includes('Fatal error')) {
-    // PHP fatal error occurred
-    const message = Joomla.Text._(`MOD_COMMUNITY_ERROR_${msgString}`);
-    const message2 = Joomla.Text._('MOD_COMMUNITY_ERROR_BROWSER_CONSOLE');
-    Joomla.renderMessages({ error: [`${message} ${sprintf(message2, 'PHP error')}`] });
-
-    console.log(`mod_community_info: ${method} request failed.`);
-    console.log(txt);
-  } else {
-    // Response is not of type json --> probably some php warnings/notices
-    const split = txt.split('\n{"');
-    const temp = JSON.parse(`{"${split[1]}`);
-    data = JSON.parse(temp.data);
-
-    const message = Joomla.Text._(`MOD_COMMUNITY_ERROR_${msgString}`);
-    const message2 = Joomla.Text._('MOD_COMMUNITY_ERROR_BROWSER_CONSOLE');
-    Joomla.renderMessages({ error: [`${message} ${sprintf(message2, 'PHP warnings')}`] });
-    console.log(`mod_community_info: ${method} request failed.`);
-    console.log(`Message: ${split[0]}`);
-    console.log(`Messages: ${temp.messages}`);
-    console.log(`Data: ${data}`);
-  }
-
-  return data;
 };
 
 /**
@@ -384,7 +397,7 @@ const openModal = function (moduleId, modalId) {
  *
  * @param   {String}   datetime   Timestamp of the cached data
  * @param   {Integer}  moduleId   ID of the module
- * 
+ *
  * @returns {Bool}     True if cached data is still valid, false otherwise
  */
 const checkCache = function (datetime, moduleId) {
@@ -392,7 +405,7 @@ const checkCache = function (datetime, moduleId) {
   const date = new Date(datetime.replace(' ', 'T'));
 
   // Get cachtime param of module
-  const cachetime = parseInt(document.getElementById('CommunityInfo'+moduleId).getAttribute('data-cachetime'));
+  const cachetime = parseInt(document.getElementById(`CommunityInfo${moduleId}`).getAttribute('data-cachetime'), 10);
 
   // Calculate the cachetime limit
   const now = new Date();
@@ -401,11 +414,11 @@ const checkCache = function (datetime, moduleId) {
   if (date < limit) {
     // Datetime is older than allowed cachetime
     return false;
-  } else {
-    // Datetime is within the allowed cachetime
-    return true;
   }
-}
+
+  // Datetime is within the allowed cachetime
+  return true;
+};
 
 /**
  * Fetches new content and updates it in the module
@@ -413,88 +426,79 @@ const checkCache = function (datetime, moduleId) {
  * @param {Integer}  moduleId      ID of the module
  * @param {Bool}     forceUpdate   True to force an update of the content
  */
-const updateContent = async function (moduleId, forceUpdate=false) {
-
+const updateContent = async function (moduleId, forceUpdate = false) {
   let update = false;
-  const links_time = document.getElementById('contactTxt'+moduleId).getAttribute('data-fetch-time');
+  let communityLinks = {};
+  let communityNews = {};
+  let communityEvents = {};
 
-  if(forceUpdate || !checkCache(links_time, moduleId)) {
+  const linksTime = document.getElementById(`contactTxt${moduleId}`).getAttribute('data-fetch-time');
+
+  if (forceUpdate || !checkCache(linksTime, moduleId)) {
     // Links are outdated and need update
-    try {
-      var community_links = await ajaxTask(moduleId, 'getLinks', {}, 'FETCH_LINKS');
-      console.log('Fetched community links:', community_links);
+    communityLinks = await ajaxTask(moduleId, 'getLinks', {}, 'FETCH_LINKS');
+    addLog(`Fetched community links: ${communityLinks}`, 'debug', false);
 
-      // Get current link texts
-      let contactTxt = document.getElementById('contactTxt'+moduleId);
-      let contributeTxt = document.getElementById('contributeTxt'+moduleId);
+    // Get current link texts
+    const contactTxt = document.getElementById(`contactTxt${moduleId}`);
+    const contributeTxt = document.getElementById(`contributeTxt${moduleId}`);
 
-      if (community_links && contactTxt !== null) {
-        // Exchange contact link text
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = community_links.html.contact;
-        contactTxt.parentNode.replaceChild(tempDiv.firstChild, contactTxt);
-      }
-
-      if (community_links && contributeTxt !== null) {
-        // Exchange contribute link text
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = community_links.html.contribute;
-        const contributeTxtParent = contributeTxt.parentNode;
-        contributeTxtParent.replaceChild(tempDiv.firstChild, contributeTxt);
-        contributeTxtParent.appendChild(tempDiv.lastChild);
-      }
-
-      // Links successfully updated
-      update = true;      
-    } catch (error) {
-      console.error('Error fetching community links:', error);
+    if (communityLinks && contactTxt !== null) {
+      // Exchange contact link text
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = communityLinks.html.contact;
+      contactTxt.parentNode.replaceChild(tempDiv.firstChild, contactTxt);
     }
+
+    if (communityLinks && contributeTxt !== null) {
+      // Exchange contribute link text
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = communityLinks.html.contribute;
+      const contributeTxtParent = contributeTxt.parentNode;
+      contributeTxtParent.replaceChild(tempDiv.firstChild, contributeTxt);
+      contributeTxtParent.appendChild(tempDiv.lastChild);
+    }
+
+    // Links successfully updated
+    update = true;
   }
 
-  const news_time = document.getElementById('collapseNews'+moduleId).getAttribute('data-fetch-time');
+  const newsTime = document.getElementById(`collapseNews${moduleId}`).getAttribute('data-fetch-time');
 
-  if(update || !checkCache(news_time, moduleId)) {
+  if (update || !checkCache(newsTime, moduleId)) {
     // Fetch news feed
-    try {
-      var community_news = await ajaxTask(moduleId, 'getNewsFeed', {'url': community_links.links.news_feed}, 'FETCH_NEWS');
-      console.log('Fetched news feed:', community_news);
-    
-      // Get current news feed table
-      let newsFeetTable = document.getElementById('collapseNews'+moduleId);
+    communityNews = await ajaxTask(moduleId, 'getNewsFeed', { url: communityLinks.links.news_feed }, 'FETCH_NEWS');
+    addLog(`Fetched news feed: ${communityNews}`, 'debug', false);
 
-      if (community_news && newsFeetTable !== null) {
-        // Exchange news feed table
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = community_news.html;
-        newsFeetTable.parentNode.replaceChild(tempDiv.firstChild, newsFeetTable);
-      }
-    } catch (error) {
-      console.error('Error fetching news feed:', error);
+    // Get current news feed table
+    const newsFeetTable = document.getElementById(`collapseNews${moduleId}`);
+
+    if (communityNews && newsFeetTable !== null) {
+      // Exchange news feed table
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = communityNews.html;
+      newsFeetTable.parentNode.replaceChild(tempDiv.firstChild, newsFeetTable);
     }
   }
-  
-  const events_time = document.getElementById('collapseEvents'+moduleId).getAttribute('data-fetch-time');
 
-  if(update || !checkCache(events_time, moduleId)) {
+  const eventsTime = document.getElementById(`collapseEvents${moduleId}`).getAttribute('data-fetch-time');
+
+  if (update || !checkCache(eventsTime, moduleId)) {
     // Fetch events feed
-    try {
-      var community_events = await ajaxTask(moduleId, 'getEventsFeed', {'url': community_links.links.events_feed}, 'FETCH_EVENTS');
-      console.log('Fetched events feed:', community_events);
+    communityEvents = await ajaxTask(moduleId, 'getEventsFeed', { url: communityLinks.links.events_feed }, 'FETCH_EVENTS');
+    addLog(`Fetched events feed: ${communityEvents}`, 'debug', false);
 
-      // Get current events feed table
-      let eventsFeetTable = document.getElementById('collapseEvents'+moduleId);
+    // Get current events feed table
+    const eventsFeetTable = document.getElementById(`collapseEvents${moduleId}`);
 
-      if (community_events && eventsFeetTable !== null) {
-        // Exchange events feed table
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = community_events.html;
-        eventsFeetTable.parentNode.replaceChild(tempDiv.firstChild, eventsFeetTable);
-      }
-    } catch (error) {
-      console.error('Error fetching events feed:', error);
+    if (communityEvents && eventsFeetTable !== null) {
+      // Exchange events feed table
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = communityEvents.html;
+      eventsFeetTable.parentNode.replaceChild(tempDiv.firstChild, eventsFeetTable);
     }
   }
-}
+};
 
 /**
  * Initialize all com_community_info modules
@@ -540,7 +544,7 @@ const iniModules = async function () {
 
     // Get old location from html
     let locChanged = false;
-    let oldLocation = document.querySelectorAll('[data-modal-id="location-modal'+moduleId+'"]')[0].getAttribute('data-geolocation');
+    let oldLocation = document.querySelectorAll(`[data-modal-id="location-modal${moduleId}"]`)[0].getAttribute('data-geolocation');
     oldLocation = fixGeolocation(oldLocation);
 
     // Get auto location
@@ -549,16 +553,16 @@ const iniModules = async function () {
         let location = await getCurrentLocation();
         location = fixGeolocation(location);
 
-        if(oldLocation != location) {
+        if (oldLocation !== location) {
           // Location has changed
           locChanged = true;
-          const response = await ajaxTask(moduleId, 'setLocation', {'current_location': location}, 'SAVE_LOCATION');
-          console.log('Update location:', Joomla.Text._(response));
+          const response = await ajaxTask(moduleId, 'setLocation', { current_location: location }, 'SAVE_LOCATION');
+          addLog(`Update location: ${Joomla.Text._(response)}`, 'debug', false);
         } else {
-          console.log('Location is up to date.');
+          addLog('Location is up to date.', 'debug', false);
         }
       } catch (error) {
-        console.error('Error during autolocation:', error);
+        addLog(`Error during autolocation: ${error}`, 'debug', false);
       }
     }
 

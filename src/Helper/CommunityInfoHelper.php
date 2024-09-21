@@ -17,6 +17,7 @@ use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Http\HttpFactory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Session\Session;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
@@ -30,7 +31,7 @@ use Joomla\Registry\Registry;
 /**
  * Helper for mod_community_info
  *
- * @since  4.5.0
+ * @since   __DEPLOY_VERSION__
  */
 class CommunityInfoHelper
 {
@@ -71,7 +72,7 @@ class CommunityInfoHelper
         "vportal"     => "https://volunteers.joomla.org",
         "geolocation" => "51.5000,0.0000",
         "news_feed"   => "https://community.joomla.org/blogs?format=feed&type=rss",
-        "events_feed" => "https://djumla.dev/joomla-community-api/events.php?url=https://community.joomla.org/events\?format=feed&type=ical",
+        "events_feed" => "https://test.joomla.spuur.ch/joomla-community-api/events.php?url=https://community.joomla.org/events\?format=feed&type=ical",
         "newsletter"  => "https://community.joomla.org/general-newsletter",
     ];
 
@@ -82,11 +83,11 @@ class CommunityInfoHelper
      */
     public function __construct(array $config = [])
     {
-        if(\count($config) > 0) {
+        if (\count($config) > 0) {
             $this->moduleId = (int) $config[0];
         }
 
-        if(\count($config) > 1) {
+        if (\count($config) > 1) {
             $this->setParams($config[1]);
         }
     }
@@ -96,7 +97,7 @@ class CommunityInfoHelper
      *
      * @return  Registry   Object with community links
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     public function getLinks()
     {
@@ -117,7 +118,7 @@ class CommunityInfoHelper
      *
      * @return  string     Location info string
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     public function getLocation(string $key = 'geolocation')
     {
@@ -148,19 +149,19 @@ class CommunityInfoHelper
      *
      * @return  array    List of articles
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     public function getNewsFeed()
     {
         $items = [];
 
-        if($this->params->get('cache', 1)) {
+        if ($this->params->get('cache', 1)) {
             // Get timestamp of cached data
             $datetime = Factory::getApplication()->getUserState('mod_community_info.news_time', '');
-            
-            if($this->checkCache($datetime)) {
+
+            if ($this->checkCache($datetime)) {
                 // Load news from session
-                $items = Factory::getApplication()->getUserState('mod_community_info.news', []);                
+                $items = Factory::getApplication()->getUserState('mod_community_info.news', []);
             } else {
                 // Cached data is outdated
                 Factory::getApplication()->setUserState('mod_community_info.news', []);
@@ -175,19 +176,19 @@ class CommunityInfoHelper
      *
      * @return  array    List of events
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     public function getEventsFeed()
     {
         $upcomingEvents = [];
 
-        if($this->params->get('cache', 1)) {
+        if ($this->params->get('cache', 1)) {
             // Get timestamp of cached data
             $datetime = Factory::getApplication()->getUserState('mod_community_info.events_time', '');
-            
-            if($this->checkCache($datetime)) {
+
+            if ($this->checkCache($datetime)) {
                 // Load news from session
-                $upcomingEvents = Factory::getApplication()->getUserState('mod_community_info.events', []);                
+                $upcomingEvents = Factory::getApplication()->getUserState('mod_community_info.events', []);
             } else {
                 // Cached data is outdated
                 Factory::getApplication()->setUserState('mod_community_info.events', []);
@@ -205,7 +206,7 @@ class CommunityInfoHelper
      *
      * @return  string     The replaced text
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     public static function replaceText(string $text, Registry $links)
     {
@@ -238,7 +239,7 @@ class CommunityInfoHelper
      *
      * @return  string  The ajax return message
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     public function setLocationAjax()
     {
@@ -286,7 +287,7 @@ class CommunityInfoHelper
      *
      * @return  Registry   Object with community links
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     public function getLinksAjax()
     {
@@ -297,7 +298,7 @@ class CommunityInfoHelper
         }
 
         if (!$moduleId = $input->get('module_id', false, 'int')) {
-          return 'You must provide a "module_id" variable with the request!';
+            return 'You must provide a "module_id" variable with the request!';
         }
 
         $this->moduleId = $moduleId;
@@ -305,7 +306,7 @@ class CommunityInfoHelper
 
         // Load module language file
         $lang  = Factory::getApplication()->getLanguage();
-        $lang->load('mod_community_info', JPATH_ADMINISTRATOR.'/modules/mod_community_info');
+        $lang->load('mod_community_info', JPATH_ADMINISTRATOR . '/modules/mod_community_info');
 
         // Load the local default values
         $links = new Registry(self::DEFAULT_INFO);
@@ -360,7 +361,7 @@ class CommunityInfoHelper
      *
      * @return  array    List of articles
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     public function getNewsFeedAjax()
     {
@@ -383,7 +384,7 @@ class CommunityInfoHelper
 
         // Load module language file
         $lang  = Factory::getApplication()->getLanguage();
-        $lang->load('mod_community_info', JPATH_ADMINISTRATOR.'/modules/mod_community_info');
+        $lang->load('mod_community_info', JPATH_ADMINISTRATOR . '/modules/mod_community_info');
 
         // Load rss xml from endpoint
         $items = [];
@@ -428,9 +429,9 @@ class CommunityInfoHelper
 
         // Create html
         $displayData = ['module' => (object) ['id' => $moduleId], 'news_time' => date('Y-m-d H:i:s'), 'params' => $this->params, 'news' => $items];
-        $layoutName  = \str_replace('_:', '', $this->params->get('layout', 'default') . '_news');
+        $layoutName  = str_replace('_:', '', $this->params->get('layout', 'default') . '_news');
         $layoutPath  = ModuleHelper::getLayoutPath('mod_community_info', $layoutName);
-        $html        = LayoutHelper::render($layoutName, $displayData, \str_replace($layoutName . '.php', '', $layoutPath));
+        $html        = LayoutHelper::render($layoutName, $displayData, str_replace($layoutName . '.php', '', $layoutPath));
 
         return ['items' => $items, 'html' => trim($html)];
     }
@@ -440,7 +441,7 @@ class CommunityInfoHelper
      *
      * @return  array    List of events
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     public function getEventsFeedAjax()
     {
@@ -484,11 +485,48 @@ class CommunityInfoHelper
 
         // Create html
         $displayData = ['module' => (object) ['id' => $moduleId], 'events_time' => date('Y-m-d H:i:s'), 'params' => $this->params, 'events' => $upcomingEvents];
-        $layoutName  = \str_replace('_:', '', $this->params->get('layout', 'default') . '_events');
+        $layoutName  = str_replace('_:', '', $this->params->get('layout', 'default') . '_events');
         $layoutPath  = ModuleHelper::getLayoutPath('mod_community_info', $layoutName);
-        $html        = LayoutHelper::render($layoutName, $displayData, \str_replace($layoutName . '.php', '', $layoutPath));
+        $html        = LayoutHelper::render($layoutName, $displayData, str_replace($layoutName . '.php', '', $layoutPath));
 
         return ['items' => $upcomingEvents, 'html' => trim($html)];
+    }
+
+    /**
+     * Adds a log entry to Joomla\CMS\Log\Log with com_ajax
+     *
+     * @return  string    Successful or error message
+     *
+     * @since   __DEPLOY_VERSION__
+     */
+    public function addLogAjax()
+    {
+        $input = Factory::getApplication()->input;
+
+        if ($input->getCmd('option') !== 'com_ajax' || $input->getCmd('module') !== 'community_info') {
+            return 'Permission denied!';
+        }
+
+        if (!$msg = $input->get('message', false, 'string')) {
+            return 'You must provide a "message" variable with the request!';
+        }
+
+        $prio = $input->get('priority', 8, 'cmd');
+
+        // Convert priority to proper integer value
+        if (\is_string($prio)) {
+            $prio     = strtoupper($prio);
+            $constant = "Joomla\CMS\Log\Log::$prio";
+            $prio     = \constant($constant);
+        }
+
+        // Add logger if needed
+        Log::addLogger(['text_file' => 'mod_community_info.log.php'], Log::ALL, ['mod_community_info']);
+
+        // Log message
+        Log::add($msg, $prio, 'mod_community_info');
+
+        return 'True';
     }
 
     /**
@@ -498,7 +536,7 @@ class CommunityInfoHelper
      *
      * @return  void
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     public function setLocationForm($task = 'saveLocation')
     {
@@ -533,7 +571,7 @@ class CommunityInfoHelper
      *
      * @param  mixed  $params   Module parameters
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      * @throws  \Exception
      */
     protected function setParams($params = [])
@@ -556,7 +594,7 @@ class CommunityInfoHelper
      *
      * @return  void
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      * @throws \Exception
      */
     protected function loadParams()
@@ -584,7 +622,7 @@ class CommunityInfoHelper
      *
      * @return  mixed      A database cursor resource on success, boolean false on failure.
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      * @throws \Exception
      */
     protected function writeParams(Registry $params)
@@ -613,7 +651,7 @@ class CommunityInfoHelper
      *
      * @return  string|false   Adress on success, false otherwise
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     protected function resolveLocation($lat, $lng = '')
     {
@@ -679,7 +717,7 @@ class CommunityInfoHelper
      *
      * @return  string   Fixed string
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     protected function fixGeolocation(string $geolocation): string
     {
@@ -702,7 +740,7 @@ class CommunityInfoHelper
      *
      * @return  mixed    The fetched content on success, false otherwise
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     protected function fetchAPI(string $url, array $variables)
     {
@@ -744,7 +782,7 @@ class CommunityInfoHelper
     /**
      * Adds language constants to JavaScript
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     public static function addText()
     {
@@ -766,7 +804,7 @@ class CommunityInfoHelper
      *
      * @return  array   [Error code, Error message]
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     protected function xmlError($errors, $limit = 1)
     {
@@ -805,20 +843,20 @@ class CommunityInfoHelper
      *
      * @return  bool     True if cached data is still valid, false otherwise
      *
-     * @since   4.5.0
+     * @since   __DEPLOY_VERSION__
      */
     protected function checkCache(string $datetime)
     {
-        if($this->params->get('cache', 1)) {            
+        if ($this->params->get('cache', 1)) {
             // Create DateTime object
             $datetime = $datetime ? new \DateTime($datetime) : false;
 
             // Create DateTime object from x hours ago
-            $now = new \DateTime();
+            $now        = new \DateTime();
             $cache_time = (int) $this->params->get('cache_time', 3);
             $now->modify('-' . $cache_time . ' hours');
 
-            if($datetime && $datetime > $now) {
+            if ($datetime && $datetime > $now) {
                 // The date is within the last x hours. Cached data is still valid
                 return true;
             }
